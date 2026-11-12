@@ -254,7 +254,9 @@ function ensureDaily(){
 const OSM='https://www.openstreetmap.org';
 const REDIRECT=location.origin+location.pathname;
 let token=localStorage.getItem('roseberry:token')||'',user=null;
-const clientId=()=>localStorage.getItem('roseberry:client')||'';
+/* Put your own OSM OAuth2 Client ID here (public app, no secret) so visitors never need to register anything. */
+const CLIENT_ID='WMdhb7dR-uyiup5_MrNF41QlaxzLfKk-Cqdf8Xxc2Fs';
+const clientId=()=>CLIENT_ID||localStorage.getItem('roseberry:client')||'';
 const b64u=a=>btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 async function login(){
   if(!clientId()){openSetup();return}
@@ -289,11 +291,19 @@ async function fetchUser(){
   try{const j=await(await osm('/user/details.json')).json();user=j.user;loadState(user.id)}catch(e){toast('Could not load your OSM profile: '+e.message,1)}
 }
 const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-async function ensureCS(){
+const csXml=c=>`<osm><changeset><tag k="created_by" v="Roseberry 0.1"/><tag k="comment" v="${esc(c)}"/><tag k="source" v="survey"/></changeset></osm>`;
+function csComment(){
+  const parts=Object.entries(S.csKeys||{}).filter(([,n])=>n>0).map(([k,n])=>n>1?`${k} (${n})`:k);
+  return('Add '+(parts.join(', ')||'tags')).slice(0,255);
+}
+async function updateCS(){
+  if(!S.cs)return;
+  try{await osm(`/changeset/${S.cs}`,{method:'PUT',headers:{'Content-Type':'text/xml'},body:csXml(csComment())})}catch(e){}
+}
+async function ensureCS(key,verb='Add'){
   if(S.cs)return S.cs;
-  const body=`<osm><changeset><tag k="created_by" v="Roseberry 0.1"/><tag k="comment" v="Survey answers via Roseberry quests"/><tag k="source" v="survey"/></changeset></osm>`;
-  const r=await osm('/changeset/create',{method:'PUT',headers:{'Content-Type':'text/xml'},body});
-  S.cs=+(await r.text());save();return S.cs;
+  const r=await osm('/changeset/create',{method:'PUT',headers:{'Content-Type':'text/xml'},body:csXml(`${verb} ${key}`)});
+  S.cs=+(await r.text());S.csKeys={};save();return S.cs;
 }
 async function closeCS(){
   if(!S.cs)return;
@@ -306,9 +316,9 @@ function elemXml(type,e,tags,cs){
   if(type==='node')return`<osm><node id="${e.id}" version="${e.version}" changeset="${cs}" lat="${e.lat}" lon="${e.lon}">${tg}</node></osm>`;
   return`<osm><way id="${e.id}" version="${e.version}" changeset="${cs}">${e.nodes.map(n=>`<nd ref="${n}"/>`).join('')}${tg}</way></osm>`;
 }
-async function saveElem(type,e,tags){
+async function saveElem(type,e,tags,key,verb){
   for(let i=0;i<2;i++){
-    const cs=await ensureCS();
+    const cs=await ensureCS(key,verb);
     try{
       const r=await osm(`/${type}/${e.id}`,{method:'PUT',headers:{'Content-Type':'text/xml'},body:elemXml(type,e,tags,cs)});
       return{version:+(await r.text()),cs};
@@ -334,6 +344,21 @@ const enabled=()=>Q.filter(q=>!S.off[q.id]);
 const ekey=e=>e.type+'/'+e.id;
 function pending(e){return Q.filter(q=>!S.off[q.id]&&qMatches(q,e.type,e.tags||{})&&!(S.skip[ekey(e)]||[]).includes(q.id))}
 
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+async function overpass(ql){
+  let last=new Error('Overpass unavailable');
+  for(let round=0;round<2;round++){
+    for(const u of OVERPASS){
+      try{
+        const r=await fetch(u,{method:'POST',body:new URLSearchParams({data:ql})});
+        if(r.ok)return await r.json();
+        last=new Error('Overpass error '+r.status);
+      }catch(e){last=e}
+    }
+    await new Promise(r=>setTimeout(r,1500));
+  }
+  throw last;
+}
 async function scan(){
   if(scanning)return;
   if(map.getZoom()<15){toast('Zoom in to level 15 or closer first');return}
@@ -344,9 +369,7 @@ async function scan(){
   for(const q of qs)for(const a of q.alts)sels.add(q.prefix+a.map(termSel).join('')+`(${bbox});`);
   const ql=`[out:json][timeout:40];(${[...sels].join('')});out tags geom 800;`;
   try{
-    const r=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:ql})});
-    if(!r.ok)throw new Error(r.status===429?'Overpass is busy, try again in a moment':'Overpass error '+r.status);
-    const j=await r.json();
+    const j=await overpass(ql);
     els=new Map();
     for(const e of j.elements||[]){if(e.tags&&(e.type==='node'||e.type==='way')&&mid(e))els.set(ekey(e),e)}
     lastBounds=b;
@@ -404,8 +427,9 @@ async function submitAnswer(value){
       toast('Someone already added that tag, skipping');e.tags=cur.tags;busy=false;nextQuest(sel.key);return;
     }
     const tags={...(cur.tags||{}),[q.key]:String(value).trim().slice(0,255)};
-    const res=await saveElem(e.type,cur,tags);
+    const res=await saveElem(e.type,cur,tags,q.key);
     e.tags=tags;
+    S.csKeys=S.csKeys||{};S.csKeys[q.key]=(S.csKeys[q.key]||0)+1;updateCS();
     const r=award(q);
     S.log.unshift({t:Date.now(),type:e.type,id:e.id,qid:q.id,key:q.key,value:tags[q.key],ver:res.version,cs:res.cs,gain:r.gain,name:e.tags.name||''});
     S.log=S.log.slice(0,30);save();
@@ -442,7 +466,8 @@ async function undoLast(){
     const cur=await getElem(l.type,l.id);
     if(cur.version!==l.ver)throw new Error('The element was edited by someone else since, so I will not touch it.');
     const tags={...cur.tags};delete tags[l.key];
-    await saveElem(l.type,cur,tags);
+    await saveElem(l.type,cur,tags,l.key,'Revert');
+    if(S.cs===l.cs&&S.csKeys?.[l.key]){S.csKeys[l.key]--;updateCS()}
     const q=QM[l.qid];
     S.xp=Math.max(0,S.xp-l.gain);S.edits=Math.max(0,S.edits-1);
     S.byQuest[q.id]=Math.max(0,(S.byQuest[q.id]||1)-1);S.byCat[q.cat]=Math.max(0,(S.byCat[q.cat]||1)-1);
@@ -520,6 +545,11 @@ function renderAll(){renderHud();renderQuestTab();renderProfile();renderCatalog(
 
 /* ---------- setup modal ---------- */
 function openSetup(){
+  if(CLIENT_ID){
+    $('#setupBox').innerHTML=`<h3 style="margin-top:0">🌹 Settings</h3><div class="small mut">Your token and progress are stored only in this browser.</div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="cidClose">Close</button><button class="btn" id="resetProg" style="margin-left:auto">Reset local progress</button></div>`;
+    $('#setup').classList.add('on');return;
+  }
   $('#setupBox').innerHTML=`<h3 style="margin-top:0">🌹 Connect Roseberry to OpenStreetMap</h3>
   <ol class="small" style="padding-left:18px">
   <li>Open <a target="_blank" rel="noopener" href="${OSM}/oauth2/applications/new">${OSM}/oauth2/applications/new</a> (while logged in).</li>

@@ -1,556 +1,2380 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Roseberry</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
-<style>
-:root{--bg:#0e0f13;--panel:#15171d;--panel2:#1c1f27;--line:#272b36;--txt:#e6e8ee;--mut:#8b91a1;--rose:#e0527a;--rose2:#ff7a9c;--ok:#4ade80;--bad:#f87171}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-button,input{font:inherit;color:inherit}
-a{color:var(--rose2)}
-header{display:flex;align-items:center;gap:14px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
-.brand{font-weight:700;font-size:18px;letter-spacing:.3px}
-.brand b{color:var(--rose2)}
-.hud{display:flex;align-items:center;gap:10px;flex:1;min-width:240px}
-.lvl{background:var(--rose);color:#fff;border-radius:6px;padding:1px 8px;font-weight:700;white-space:nowrap}
-.bar{flex:1;max-width:260px;height:8px;background:var(--panel2);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
-.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--rose),var(--rose2));transition:width .4s}
-.mut{color:var(--mut)}
-.pill{background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:1px 9px;white-space:nowrap}
-.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
-.btn:hover{border-color:var(--rose)}
-.btn.pri{background:var(--rose);border-color:var(--rose);color:#fff}
-.btn.pri:hover{background:var(--rose2)}
-.btn:disabled{opacity:.5;cursor:default}
-main{display:grid;grid-template-columns:400px 1fr;height:calc(100% - 50px)}
-aside{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-#map{height:100%;background:#111}
-.leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.8)}
-.tabs{display:flex;border-bottom:1px solid var(--line)}
-.tabs button{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:9px 4px;cursor:pointer;color:var(--mut)}
-.tabs button.on{color:var(--txt);border-color:var(--rose)}
-.tab{display:none;overflow:auto;padding:12px;flex:1}
-.tab.on{display:block}
-.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
-.card h3{margin:0 0 4px;font-size:15px}
-.chip{display:inline-block;border-radius:999px;padding:0 8px;font-size:12px;background:var(--panel);border:1px solid var(--line);margin-right:4px}
-.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
-.opt{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px;cursor:pointer;text-align:center}
-.opt:hover{border-color:var(--rose);background:#241a20}
-input[type=text],input[type=number]{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;outline:none}
-input:focus{border-color:var(--rose)}
-.row{display:flex;gap:8px;align-items:center}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
-.chips button{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:2px 10px;cursor:pointer;font-size:12px}
-.chips button:hover{border-color:var(--rose)}
-.small{font-size:12px}
-.item{display:flex;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid var(--line);cursor:pointer}
-.item:hover{background:var(--panel2)}
-.ic{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--c,#444);font-size:14px;flex:none}
-.pin{width:30px;height:30px;border-radius:50%;background:var(--c);display:grid;place-items:center;font-size:15px;border:2px solid #0e0f13;box-shadow:0 1px 6px #000a}
-.pin.sel{outline:3px solid #fff}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.stat{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px;text-align:center}
-.stat b{display:block;font-size:18px}
-.badge{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center;font-size:11px}
-.badge.lock{opacity:.35;filter:grayscale(1)}
-.badge span{display:block;font-size:22px}
-h4{margin:14px 0 6px;color:var(--mut);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.8px}
-.sw{display:flex;align-items:center;gap:8px;padding:5px 0}
-.goal{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-#toasts{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:2000;align-items:center}
-.toast{background:#000d;border:1px solid var(--rose);border-radius:10px;padding:8px 14px;animation:pop .25s}
-.toast.err{border-color:var(--bad)}
-@keyframes pop{from{transform:translateY(10px);opacity:0}}
-.modal{position:fixed;inset:0;background:#000b;z-index:3000;display:none;place-items:center;padding:16px}
-.modal.on{display:grid}
-.modal .box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;max-width:520px;width:100%;max-height:90vh;overflow:auto}
-code{background:var(--panel2);padding:1px 5px;border-radius:4px;word-break:break-all}
-details summary{cursor:pointer;color:var(--mut)}
-@media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:45vh 1fr;height:calc(100% - 92px)}#map{order:-1}aside{border-right:0}}
-</style>
-</head>
-<body>
-<header>
-  <div class="brand">🌹 <b>Roseberry</b></div>
-  <div class="hud">
-    <span class="lvl" id="lvl">Lv 1</span>
-    <div class="bar"><i id="xpbar"></i></div>
-    <span class="mut small" id="xptxt"></span>
-    <span class="pill" id="combo" hidden></span>
-    <span class="pill" id="streak" hidden></span>
-  </div>
-  <label class="small mut"><input type="checkbox" id="auto" checked> auto-scan</label>
-  <button class="btn" id="btnLocate" title="Go to my location">📍</button>
-  <button class="btn pri" id="btnScan">Scan area</button>
-  <button class="btn" id="btnLogin">Log in</button>
-  <button class="btn" id="btnCfg" title="Settings">⚙</button>
-</header>
-<main>
-  <aside>
-    <nav class="tabs">
-      <button data-tab="quest" class="on">Quests</button>
-      <button data-tab="profile">Profile</button>
-      <button data-tab="catalog">All quests</button>
-      <button data-tab="log">Log</button>
-    </nav>
-    <section class="tab on" id="tab-quest"></section>
-    <section class="tab" id="tab-profile"></section>
-    <section class="tab" id="tab-catalog"></section>
-    <section class="tab" id="tab-log"></section>
-  </aside>
-  <div id="map"></div>
-</main>
-<div id="toasts"></div>
-<div class="modal" id="setup"><div class="box" id="setupBox"></div></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Roseberry</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
+    <style>
+      :root {
+        --bg: #0e0f13;
+        --panel: #15171d;
+        --panel2: #1c1f27;
+        --line: #272b36;
+        --txt: #e6e8ee;
+        --mut: #8b91a1;
+        --rose: #e0527a;
+        --rose2: #ff7a9c;
+        --ok: #4ade80;
+        --bad: #f87171;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--txt);
+        font:
+          15px/1.45 system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+      }
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+      a {
+        color: var(--rose2);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 14px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        font-weight: 700;
+        font-size: 18px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+      .brand b {
+        color: var(--rose2);
+      }
+      .hud {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+        min-width: 0;
+      }
+      .lvl {
+        background: var(--rose);
+        color: #fff;
+        border-radius: 6px;
+        padding: 1px 8px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+      .bar {
+        flex: 1;
+        max-width: 240px;
+        min-width: 40px;
+        height: 8px;
+        background: var(--panel2);
+        border-radius: 4px;
+        overflow: hidden;
+        border: 1px solid var(--line);
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, var(--rose), var(--rose2));
+        transition: width 0.4s;
+      }
+      .mut {
+        color: var(--mut);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .pill {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 1px 9px;
+        white-space: nowrap;
+      }
+      .btn {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 7px 13px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--rose);
+      }
+      .btn.pri {
+        background: var(--rose);
+        border-color: var(--rose);
+        color: #fff;
+      }
+      .btn.pri:hover {
+        background: var(--rose2);
+      }
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .link {
+        background: none;
+        border: 0;
+        color: var(--mut);
+        cursor: pointer;
+        text-decoration: underline;
+        padding: 6px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        height: calc(100% - 50px);
+      }
+      aside {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+      .modes {
+        display: flex;
+        gap: 6px;
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+      }
+      .modes button {
+        flex: 1;
+        padding: 9px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--panel2);
+        cursor: pointer;
+      }
+      .modes button.on {
+        background: var(--rose);
+        border-color: var(--rose);
+        color: #fff;
+        font-weight: 600;
+      }
+      #stage {
+        flex: 1;
+        overflow: auto;
+        padding: 14px;
+      }
+      #map {
+        height: 100%;
+        background: #111;
+      }
+      .leaflet-tile-pane {
+        filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9)
+          saturate(0.8);
+      }
+      .hero {
+        text-align: center;
+        padding: 22px 6px;
+      }
+      .hero .big {
+        font-size: 46px;
+      }
+      .hero h2 {
+        margin: 6px 0;
+      }
+      .cta {
+        display: block;
+        width: 100%;
+        padding: 14px;
+        font-size: 16px;
+        border-radius: 12px;
+        margin-top: 10px;
+        text-align: center;
+      }
+      .card {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px;
+        margin-bottom: 12px;
+      }
+      .card h3 {
+        margin: 8px 0 4px;
+        font-size: 17px;
+      }
+      .chip {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 0 8px;
+        font-size: 12px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        margin-right: 4px;
+      }
+      .q {
+        font-size: 17px;
+        margin: 6px 0;
+      }
+      .opts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin: 12px 0;
+      }
+      .opt {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 16px 8px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 16px;
+      }
+      .opt:hover {
+        border-color: var(--rose);
+        background: #241a20;
+      }
+      input[type="text"],
+      input[type="number"] {
+        width: 100%;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 11px 12px;
+        outline: none;
+        font-size: 16px;
+      }
+      input:focus {
+        border-color: var(--rose);
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 10px 0;
+      }
+      .chips button {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 12px;
+        cursor: pointer;
+      }
+      .chips button:hover {
+        border-color: var(--rose);
+      }
+      .ic {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--c, #444);
+        font-size: 14px;
+        flex: none;
+      }
+      .item {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 4px;
+        border-bottom: 1px solid var(--line);
+      }
+      .pin {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: var(--c);
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+        border: 2px solid #0e0f13;
+        box-shadow: 0 1px 6px #000a;
+      }
+      .pin.sel {
+        width: 34px;
+        height: 34px;
+        margin: -3px;
+        outline: 3px solid #fff;
+      }
+      .pin.far {
+        opacity: 0.35;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+      }
+      .stat {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px;
+        text-align: center;
+      }
+      .stat b {
+        display: block;
+        font-size: 18px;
+      }
+      .badge {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 8px 4px;
+        text-align: center;
+        font-size: 11px;
+      }
+      .badge.lock {
+        opacity: 0.35;
+        filter: grayscale(1);
+      }
+      .badge span {
+        display: block;
+        font-size: 22px;
+      }
+      h4 {
+        margin: 14px 0 6px;
+        color: var(--mut);
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.8px;
+      }
+      .sw {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 5px 0;
+      }
+      .goal {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .mtabs {
+        display: flex;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 12px;
+      }
+      .mtabs button {
+        flex: 1;
+        background: none;
+        border: 0;
+        border-bottom: 2px solid transparent;
+        padding: 9px 4px;
+        cursor: pointer;
+        color: var(--mut);
+      }
+      .mtabs button.on {
+        color: var(--txt);
+        border-color: var(--rose);
+      }
+      .tab {
+        display: none;
+      }
+      .tab.on {
+        display: block;
+      }
+      #toasts {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 2000;
+        align-items: center;
+        pointer-events: none;
+      }
+      .toast {
+        background: #000d;
+        border: 1px solid var(--rose);
+        border-radius: 10px;
+        padding: 8px 14px;
+        animation: pop 0.25s;
+      }
+      .toast.err {
+        border-color: var(--bad);
+      }
+      @keyframes pop {
+        from {
+          transform: translateY(10px);
+          opacity: 0;
+        }
+      }
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: #000b;
+        z-index: 3000;
+        display: none;
+        place-items: center;
+        padding: 16px;
+      }
+      .modal.on {
+        display: grid;
+      }
+      .modal .box {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 18px;
+        max-width: 520px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: auto;
+      }
+      code {
+        background: var(--panel2);
+        padding: 1px 5px;
+        border-radius: 4px;
+        word-break: break-all;
+      }
+      details summary {
+        cursor: pointer;
+        color: var(--mut);
+      }
+      @media (max-width: 800px) {
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: 34vh 1fr;
+        }
+        #map {
+          order: -1;
+        }
+        aside {
+          border-right: 0;
+        }
+        #xptxt {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">🌹 <b>Roseberry</b></div>
+      <div class="hud">
+        <span class="lvl" id="lvl">Lv 1</span>
+        <div class="bar"><i id="xpbar"></i></div>
+        <span class="mut small" id="xptxt"></span>
+        <span class="pill" id="combo" hidden></span>
+        <span class="pill" id="streak" hidden></span>
+      </div>
+      <button class="btn" id="btnMenu">☰ Menu</button>
+    </header>
+    <main>
+      <aside>
+        <div class="modes">
+          <button data-mode="play" class="on">▶ Play</button>
+          <button data-mode="walk">🚶 Walk</button>
+        </div>
+        <div id="stage"></div>
+      </aside>
+      <div id="map"></div>
+    </main>
+    <div id="toasts"></div>
+    <div class="modal" id="menu">
+      <div class="box">
+        <div class="mtabs">
+          <button data-tab="profile" class="on">Profile</button>
+          <button data-tab="catalog">Quest types</button>
+          <button data-tab="log">Log</button>
+          <button data-tab="account">Account</button>
+        </div>
+        <section class="tab on" id="tab-profile"></section>
+        <section class="tab" id="tab-catalog"></section>
+        <section class="tab" id="tab-log"></section>
+        <section class="tab" id="tab-account"></section>
+        <div style="margin-top: 14px; text-align: right">
+          <button class="btn" id="menuClose">Close</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal" id="setup"><div class="box" id="setupBox"></div></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script>
-/* ---------- helpers ---------- */
-const $=(s,r=document)=>r.querySelector(s);
-const $$=(s,r=document)=>[...r.querySelectorAll(s)];
-const h=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const today=()=>new Date().toLocaleDateString('en-CA');
-const yesterday=()=>new Date(Date.now()-864e5).toLocaleDateString('en-CA');
-function toast(msg,err){const t=document.createElement('div');t.className='toast'+(err?' err':'');t.textContent=msg;$('#toasts').append(t);setTimeout(()=>t.remove(),err?6000:3500)}
-function hash(s){let x=2166136261;for(const c of s){x^=c.charCodeAt(0);x=Math.imul(x,16777619)}return x>>>0}
-function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+      const h = (s) =>
+        String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const today = () => new Date().toLocaleDateString("en-CA");
+      const yesterday = () =>
+        new Date(Date.now() - 864e5).toLocaleDateString("en-CA");
+      function toast(msg, err) {
+        const t = document.createElement("div");
+        t.className = "toast" + (err ? " err" : "");
+        t.textContent = msg;
+        $("#toasts").append(t);
+        setTimeout(() => t.remove(), err ? 6000 : 3500);
+      }
+      function hash(s) {
+        let x = 2166136261;
+        for (const c of s) {
+          x ^= c.charCodeAt(0);
+          x = Math.imul(x, 16777619);
+        }
+        return x >>> 0;
+      }
+      function mulberry(a) {
+        return () => {
+          a |= 0;
+          a = (a + 0x6d2b79f5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
 
-/* ---------- quest definitions ---------- */
-const CATS={
-  Access:{icon:'♿',color:'#60a5fa'},Roads:{icon:'🛣️',color:'#f59e0b'},Cycling:{icon:'🚲',color:'#34d399'},
-  Food:{icon:'🍴',color:'#fb7185'},Shops:{icon:'🛍️',color:'#c084fc'},Transit:{icon:'🚌',color:'#38bdf8'},
-  Amenities:{icon:'🚻',color:'#facc15'},Buildings:{icon:'🏠',color:'#a3a3a3'},Nature:{icon:'🌳',color:'#4ade80'}
-};
-const YN=[{l:'Yes',v:'yes'},{l:'No',v:'no'}];
-const YLN=[{l:'Yes',v:'yes'},{l:'Limited',v:'limited'},{l:'No',v:'no'}];
-const SURF=[{l:'Asphalt',v:'asphalt'},{l:'Concrete',v:'concrete'},{l:'Paving stones',v:'paving_stones'},{l:'Cobblestone',v:'sett'},{l:'Compacted gravel',v:'compacted'},{l:'Loose gravel',v:'gravel'},{l:'Dirt',v:'dirt'},{l:'Grass',v:'grass'}];
-const FOOD='amenity=restaurant|cafe|fast_food|pub|bar|ice_cream|biergarten|food_court';
-const SERV='amenity=bank|pharmacy|dentist|doctors|clinic|library|post_office|cinema|theatre|community_centre|fitness_centre|veterinary|marketplace';
-const SHOP=['shop','shop!=vacant','name'];
-const ROADS='highway=residential|unclassified|tertiary|secondary|primary|living_street|track';
-const PATHS='highway=footway|path|cycleway|pedestrian';
-const BUILD='building=house|residential|detached|semidetached_house|terrace|apartments|commercial|retail|office|industrial|yes';
-const Q=[
- /* Access */
- {id:'wc_poi',cat:'Access',t:'nw',xp:15,key:'wheelchair',icon:'♿',title:'Wheelchair access',ask:'Is {name} accessible by wheelchair?',hint:'Yes = fully, no steps. Limited = at least one room reachable or a small step.',any:[SHOP,[FOOD,'name'],[SERV,'name']],ui:'choice',opts:YLN},
- {id:'wc_toilet',cat:'Access',t:'nw',xp:15,key:'wheelchair',icon:'♿',title:'Wheelchair toilets',ask:'Can this toilet be used by a wheelchair user?',any:[['amenity=toilets']],ui:'choice',opts:YLN},
- {id:'wc_bus',cat:'Access',t:'n',xp:15,key:'wheelchair',icon:'♿',title:'Bus stop wheelchair access',ask:'Can a wheelchair user board at this bus stop (kerb, space, no obstacles)?',any:[['highway=bus_stop']],ui:'choice',opts:YN},
- {id:'tactile_bus',cat:'Access',t:'n',xp:15,key:'tactile_paving',icon:'⣿',title:'Tactile paving at bus stop',ask:'Does this bus stop have tactile paving?',any:[['highway=bus_stop']],ui:'choice',opts:YN},
- {id:'tactile_cross',cat:'Access',t:'n',xp:15,key:'tactile_paving',icon:'⣿',title:'Tactile paving at crossing',ask:'Does this crossing have tactile paving (bumpy ground markers)?',any:[['highway=crossing']],ui:'choice',opts:YN},
- /* Roads */
- {id:'road_surface',cat:'Roads',t:'w',xp:15,key:'surface',icon:'🛣️',title:'Road surface',ask:'What is the surface of this road?',any:[[ROADS]],ui:'choice',opts:SURF.slice(0,7)},
- {id:'path_surface',cat:'Roads',t:'w',xp:15,key:'surface',icon:'🥾',title:'Path surface',ask:'What is the surface of this path?',any:[[PATHS]],ui:'choice',opts:[...SURF,{l:'Wood',v:'wood'}]},
- {id:'lit',cat:'Roads',t:'w',xp:10,key:'lit',icon:'💡',title:'Street lighting',ask:'Is this street or path lit at night?',any:[[ROADS.replace('|track',''),],[PATHS]],ui:'choice',opts:YN},
- {id:'maxspeed',cat:'Roads',t:'w',xp:20,key:'maxspeed',icon:'🚦',title:'Speed limit',ask:'What is the posted speed limit here?',hint:'Number only (km/h), or add " mph" if your country uses it. Only answer if you saw a sign.',any:[['highway=residential|unclassified|tertiary|secondary|primary']],ui:'text',ph:'50',chips:['30','40','50','60','70','80','100'],val:/^\d{1,3}( mph)?$/,err:'Enter a number like 50 or 30 mph'},
- {id:'lanes',cat:'Roads',t:'w',xp:15,key:'lanes',icon:'🛤️',title:'Number of lanes',ask:'How many lanes does this road have in total (both directions)?',any:[['highway=tertiary|secondary|primary|trunk']],ui:'num',min:1,max:12},
- {id:'crossing_type',cat:'Roads',t:'n',xp:15,key:'crossing',icon:'🚸',title:'Crossing type',ask:'What kind of crossing is this?',any:[['highway=crossing']],ui:'choice',opts:[{l:'Traffic lights',v:'traffic_signals'},{l:'Marked (zebra / painted)',v:'marked'},{l:'Unmarked',v:'unmarked'}]},
- {id:'crossing_island',cat:'Roads',t:'n',xp:15,key:'crossing:island',icon:'🏝️',title:'Crossing island',ask:'Does this crossing have a refuge island in the middle?',any:[['highway=crossing','crossing=marked|zebra|traffic_signals|uncontrolled']],ui:'choice',opts:YN},
- /* Cycling */
- {id:'bike_type',cat:'Cycling',t:'nw',xp:15,key:'bicycle_parking',icon:'🚲',title:'Bike parking type',ask:'What kind of bicycle parking is this?',any:[['amenity=bicycle_parking']],ui:'choice',opts:[{l:'Stands (inverted U)',v:'stands'},{l:'Wheel clamps',v:'wall_loops'},{l:'Rack',v:'rack'},{l:'Shed / shelter',v:'shed'},{l:'Lockers',v:'lockers'},{l:'In a building',v:'building'},{l:'Two-tier',v:'two-tier'}]},
- {id:'bike_cap',cat:'Cycling',t:'nw',xp:15,key:'capacity',icon:'🔢',title:'Bike parking capacity',ask:'How many bikes fit here?',any:[['amenity=bicycle_parking']],ui:'num',min:1,max:500},
- {id:'bike_cov',cat:'Cycling',t:'nw',xp:10,key:'covered',icon:'☂️',title:'Bike parking covered',ask:'Is this bicycle parking covered (roof)?',any:[['amenity=bicycle_parking']],ui:'choice',opts:YN},
- /* Food */
- {id:'cuisine',cat:'Food',t:'nw',xp:20,key:'cuisine',icon:'🍜',title:'Cuisine',ask:'What type of food does {name} serve?',hint:'Use lowercase OSM values, e.g. pizza, burger, chinese. Separate several with a semicolon.',any:[['amenity=restaurant|fast_food','name']],ui:'text',ph:'pizza',chips:['pizza','burger','italian','chinese','sushi','indian','mexican','sandwich','kebab','thai','coffee_shop'],val:/^[a-z_;]{3,60}$/,err:'Use lowercase letters, underscores and semicolons'},
- {id:'takeaway',cat:'Food',t:'nw',xp:10,key:'takeaway',icon:'🥡',title:'Takeaway',ask:'Does {name} offer takeaway?',any:[[FOOD,'name']],ui:'choice',opts:[{l:'Yes',v:'yes'},{l:'No',v:'no'},{l:'Takeaway only',v:'only'}]},
- {id:'outdoor',cat:'Food',t:'nw',xp:10,key:'outdoor_seating',icon:'🪑',title:'Outdoor seating',ask:'Does {name} have outdoor seating?',any:[[FOOD,'name']],ui:'choice',opts:YN},
- {id:'wifi',cat:'Food',t:'nw',xp:10,key:'internet_access',icon:'📶',title:'Internet access',ask:'Does {name} offer internet access?',any:[['amenity=cafe|restaurant|pub|library|bar','name']],ui:'choice',opts:[{l:'Wi-Fi',v:'wlan'},{l:'Wired',v:'wired'},{l:'None',v:'no'}]},
- /* Shops */
- {id:'hours',cat:'Shops',t:'nw',xp:30,key:'opening_hours',icon:'🕒',title:'Opening hours',ask:'When is {name} open?',hint:'OSM opening_hours syntax. Only answer if you saw the sign or the official site.',any:[SHOP,[FOOD,'name'],[SERV,'name']],ui:'text',ph:'Mo-Fr 09:00-17:00; Sa 10:00-14:00',chips:['Mo-Su 09:00-17:00','Mo-Fr 09:00-17:00','Mo-Sa 10:00-18:00','24/7'],val:/^[A-Za-z0-9:;,\-\/ "+\[\]()]{3,200}$/,err:'That does not look like opening_hours syntax'},
- {id:'phone',cat:'Shops',t:'nw',xp:20,key:'phone',also:['contact:phone'],icon:'📞',title:'Phone number',ask:'What is the phone number of {name}?',hint:'International format, e.g. +1 403 555 0100.',any:[SHOP,[FOOD,'name'],[SERV,'name']],ui:'text',ph:'+1 403 555 0100',val:/^\+\d[\d\s\-()]{6,22}$/,err:'Use international format starting with +'},
- {id:'atm_op',cat:'Shops',t:'nw',xp:15,key:'operator',also:['brand'],icon:'🏧',title:'ATM operator',ask:'Which bank or company operates this ATM?',any:[['amenity=atm']],ui:'text',ph:'Bank name',val:/^.{2,60}$/,err:'Enter a name'},
- {id:'postbox',cat:'Shops',t:'n',xp:20,key:'collection_times',icon:'📮',title:'Post box collection times',ask:'When is this post box emptied?',any:[['amenity=post_box']],ui:'text',ph:'Mo-Fr 17:00; Sa 12:00',val:/^[A-Za-z0-9:;,\- ]{3,100}$/,err:'Use opening_hours-style syntax'},
- /* Transit */
- {id:'bus_shelter',cat:'Transit',t:'n',xp:10,key:'shelter',icon:'🚏',title:'Bus stop shelter',ask:'Does this bus stop have a shelter?',any:[['highway=bus_stop']],ui:'choice',opts:YN},
- {id:'bus_bench',cat:'Transit',t:'n',xp:10,key:'bench',icon:'🪑',title:'Bus stop bench',ask:'Does this bus stop have a bench?',any:[['highway=bus_stop']],ui:'choice',opts:YN},
- {id:'bus_bin',cat:'Transit',t:'n',xp:10,key:'bin',icon:'🗑️',title:'Bus stop bin',ask:'Is there a waste bin at this bus stop?',any:[['highway=bus_stop']],ui:'choice',opts:YN},
- /* Amenities */
- {id:'bench_back',cat:'Amenities',t:'n',xp:10,key:'backrest',icon:'🪑',title:'Bench backrest',ask:'Does this bench have a backrest?',any:[['amenity=bench']],ui:'choice',opts:YN},
- {id:'bench_seats',cat:'Amenities',t:'n',xp:10,key:'seats',icon:'🔢',title:'Bench seats',ask:'How many people can sit on this bench?',any:[['amenity=bench']],ui:'num',min:1,max:20},
- {id:'toilet_fee',cat:'Amenities',t:'nw',xp:10,key:'fee',icon:'🚻',title:'Toilet fee',ask:'Do you have to pay to use this toilet?',any:[['amenity=toilets']],ui:'choice',opts:YN},
- {id:'park_fee',cat:'Amenities',t:'nw',xp:10,key:'fee',icon:'🅿️',title:'Parking fee',ask:'Do you have to pay to park here?',any:[['amenity=parking']],ui:'choice',opts:YN},
- {id:'park_access',cat:'Amenities',t:'nw',xp:10,key:'access',icon:'🅿️',title:'Parking access',ask:'Who may use this parking?',any:[['amenity=parking']],ui:'choice',opts:[{l:'Public',v:'yes'},{l:'Customers only',v:'customers'},{l:'Private',v:'private'}]},
- {id:'park_type',cat:'Amenities',t:'nw',xp:15,key:'parking',icon:'🅿️',title:'Parking type',ask:'What kind of parking is this?',any:[['amenity=parking']],ui:'choice',opts:[{l:'Surface lot',v:'surface'},{l:'Multi-storey',v:'multi-storey'},{l:'Underground',v:'underground'},{l:'Street side',v:'street_side'}]},
- {id:'charge_cap',cat:'Amenities',t:'nw',xp:20,key:'capacity',icon:'🔌',title:'Charging points',ask:'How many vehicles can charge here at once?',any:[['amenity=charging_station']],ui:'num',min:1,max:100},
- {id:'play_surf',cat:'Amenities',t:'nw',xp:15,key:'surface',icon:'🛝',title:'Playground surface',ask:'What is the ground at this playground?',any:[['leisure=playground']],ui:'choice',opts:[{l:'Sand',v:'sand'},{l:'Wood chips',v:'woodchips'},{l:'Rubber',v:'rubber'},{l:'Grass',v:'grass'},{l:'Gravel',v:'gravel'},{l:'Paving',v:'paving_stones'}]},
- /* Buildings */
- {id:'levels',cat:'Buildings',t:'w',xp:15,key:'building:levels',icon:'🏢',title:'Building levels',ask:'How many floors above ground does this building have?',hint:'Do not count the roof or basement.',any:[[BUILD]],ui:'num',min:1,max:150,off:true},
- {id:'housenum',cat:'Buildings',t:'w',xp:25,key:'addr:housenumber',also:['addr:housename'],icon:'🔢',title:'House number',ask:'What is the house number of this building?',any:[[BUILD,'addr:street']],ui:'text',ph:'42',val:/^[0-9A-Za-z][0-9A-Za-z\-\/ ]{0,9}$/,err:'Enter a house number like 42 or 42A'},
- /* Nature */
- {id:'tree_leaf',cat:'Nature',t:'n',xp:10,key:'leaf_type',icon:'🌳',title:'Tree leaf type',ask:'Does this tree have broad leaves or needles?',any:[['natural=tree']],ui:'choice',opts:[{l:'Broadleaved',v:'broadleaved'},{l:'Needleleaved',v:'needleleaved'}]}
-];
-const QM=Object.fromEntries(Q.map(q=>[q.id,q]));
+      const CATS = {
+        Access: { icon: "♿", color: "#60a5fa" },
+        Roads: { icon: "🛣️", color: "#f59e0b" },
+        Cycling: { icon: "🚲", color: "#34d399" },
+        Food: { icon: "🍴", color: "#fb7185" },
+        Shops: { icon: "🛍️", color: "#c084fc" },
+        Transit: { icon: "🚌", color: "#38bdf8" },
+        Amenities: { icon: "🚻", color: "#facc15" },
+        Buildings: { icon: "🏠", color: "#a3a3a3" },
+        Nature: { icon: "🌳", color: "#4ade80" },
+      };
+      const YN = [
+        { l: "Yes", v: "yes" },
+        { l: "No", v: "no" },
+      ];
+      const YLN = [
+        { l: "Yes", v: "yes" },
+        { l: "Limited", v: "limited" },
+        { l: "No", v: "no" },
+      ];
+      const SURF = [
+        { l: "Asphalt", v: "asphalt" },
+        { l: "Concrete", v: "concrete" },
+        { l: "Paving stones", v: "paving_stones" },
+        { l: "Cobblestone", v: "sett" },
+        { l: "Compacted gravel", v: "compacted" },
+        { l: "Loose gravel", v: "gravel" },
+        { l: "Dirt", v: "dirt" },
+        { l: "Grass", v: "grass" },
+      ];
+      const FOOD =
+        "amenity=restaurant|cafe|fast_food|pub|bar|ice_cream|biergarten|food_court";
+      const SERV =
+        "amenity=bank|pharmacy|dentist|doctors|clinic|library|post_office|cinema|theatre|community_centre|fitness_centre|veterinary|marketplace";
+      const SHOP = ["shop", "shop!=vacant", "name"];
+      const ROADS =
+        "highway=residential|unclassified|tertiary|secondary|primary|living_street|track";
+      const PATHS = "highway=footway|path|cycleway|pedestrian";
+      const BUILD =
+        "building=house|residential|detached|semidetached_house|terrace|apartments|commercial|retail|office|industrial|yes";
+      const Q = [
+        {
+          id: "wc_poi",
+          cat: "Access",
+          t: "nw",
+          xp: 15,
+          key: "wheelchair",
+          icon: "♿",
+          title: "Wheelchair access",
+          ask: "Is {name} accessible by wheelchair?",
+          hint: "Yes = fully, no steps. Limited = at least one room reachable or a small step.",
+          any: [SHOP, [FOOD, "name"], [SERV, "name"]],
+          ui: "choice",
+          opts: YLN,
+        },
+        {
+          id: "wc_toilet",
+          cat: "Access",
+          t: "nw",
+          xp: 15,
+          key: "wheelchair",
+          icon: "♿",
+          title: "Wheelchair toilets",
+          ask: "Can this toilet be used by a wheelchair user?",
+          any: [["amenity=toilets"]],
+          ui: "choice",
+          opts: YLN,
+        },
+        {
+          id: "wc_bus",
+          cat: "Access",
+          t: "n",
+          xp: 15,
+          key: "wheelchair",
+          icon: "♿",
+          title: "Bus stop wheelchair access",
+          ask: "Can a wheelchair user board at this bus stop (kerb, space, no obstacles)?",
+          any: [["highway=bus_stop"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "tactile_bus",
+          cat: "Access",
+          t: "n",
+          xp: 15,
+          key: "tactile_paving",
+          icon: "⣿",
+          title: "Tactile paving at bus stop",
+          ask: "Does this bus stop have tactile paving?",
+          any: [["highway=bus_stop"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "tactile_cross",
+          cat: "Access",
+          t: "n",
+          xp: 15,
+          key: "tactile_paving",
+          icon: "⣿",
+          title: "Tactile paving at crossing",
+          ask: "Does this crossing have tactile paving (bumpy ground markers)?",
+          any: [["highway=crossing"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "road_surface",
+          cat: "Roads",
+          t: "w",
+          xp: 15,
+          key: "surface",
+          icon: "🛣️",
+          title: "Road surface",
+          ask: "What is the surface of this road?",
+          any: [[ROADS]],
+          ui: "choice",
+          opts: SURF.slice(0, 7),
+        },
+        {
+          id: "path_surface",
+          cat: "Roads",
+          t: "w",
+          xp: 15,
+          key: "surface",
+          icon: "🥾",
+          title: "Path surface",
+          ask: "What is the surface of this path?",
+          any: [[PATHS]],
+          ui: "choice",
+          opts: [...SURF, { l: "Wood", v: "wood" }],
+        },
+        {
+          id: "lit",
+          cat: "Roads",
+          t: "w",
+          xp: 10,
+          key: "lit",
+          icon: "💡",
+          title: "Street lighting",
+          ask: "Is this street or path lit at night?",
+          any: [[ROADS.replace("|track", "")], [PATHS]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "maxspeed",
+          cat: "Roads",
+          t: "w",
+          xp: 20,
+          key: "maxspeed",
+          icon: "🚦",
+          title: "Speed limit",
+          ask: "What is the posted speed limit here?",
+          hint: 'Number only (km/h), or add " mph" if your country uses it. Only answer if you saw a sign.',
+          any: [
+            ["highway=residential|unclassified|tertiary|secondary|primary"],
+          ],
+          ui: "text",
+          ph: "50",
+          chips: ["30", "40", "50", "60", "70", "80", "100"],
+          val: /^\d{1,3}( mph)?$/,
+          err: "Enter a number like 50 or 30 mph",
+        },
+        {
+          id: "lanes",
+          cat: "Roads",
+          t: "w",
+          xp: 15,
+          key: "lanes",
+          icon: "🛤️",
+          title: "Number of lanes",
+          ask: "How many lanes does this road have in total (both directions)?",
+          any: [["highway=tertiary|secondary|primary|trunk"]],
+          ui: "num",
+          min: 1,
+          max: 12,
+        },
+        {
+          id: "crossing_type",
+          cat: "Roads",
+          t: "n",
+          xp: 15,
+          key: "crossing",
+          icon: "🚸",
+          title: "Crossing type",
+          ask: "What kind of crossing is this?",
+          any: [["highway=crossing"]],
+          ui: "choice",
+          opts: [
+            { l: "Traffic lights", v: "traffic_signals" },
+            { l: "Marked (zebra / painted)", v: "marked" },
+            { l: "Unmarked", v: "unmarked" },
+          ],
+        },
+        {
+          id: "crossing_island",
+          cat: "Roads",
+          t: "n",
+          xp: 15,
+          key: "crossing:island",
+          icon: "🏝️",
+          title: "Crossing island",
+          ask: "Does this crossing have a refuge island in the middle?",
+          any: [
+            [
+              "highway=crossing",
+              "crossing=marked|zebra|traffic_signals|uncontrolled",
+            ],
+          ],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "bike_type",
+          cat: "Cycling",
+          t: "nw",
+          xp: 15,
+          key: "bicycle_parking",
+          icon: "🚲",
+          title: "Bike parking type",
+          ask: "What kind of bicycle parking is this?",
+          any: [["amenity=bicycle_parking"]],
+          ui: "choice",
+          opts: [
+            { l: "Stands (inverted U)", v: "stands" },
+            { l: "Wheel clamps", v: "wall_loops" },
+            { l: "Rack", v: "rack" },
+            { l: "Shed / shelter", v: "shed" },
+            { l: "Lockers", v: "lockers" },
+            { l: "In a building", v: "building" },
+            { l: "Two-tier", v: "two-tier" },
+          ],
+        },
+        {
+          id: "bike_cap",
+          cat: "Cycling",
+          t: "nw",
+          xp: 15,
+          key: "capacity",
+          icon: "🔢",
+          title: "Bike parking capacity",
+          ask: "How many bikes fit here?",
+          any: [["amenity=bicycle_parking"]],
+          ui: "num",
+          min: 1,
+          max: 500,
+        },
+        {
+          id: "bike_cov",
+          cat: "Cycling",
+          t: "nw",
+          xp: 10,
+          key: "covered",
+          icon: "☂️",
+          title: "Bike parking covered",
+          ask: "Is this bicycle parking covered (roof)?",
+          any: [["amenity=bicycle_parking"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "cuisine",
+          cat: "Food",
+          t: "nw",
+          xp: 20,
+          key: "cuisine",
+          icon: "🍜",
+          title: "Cuisine",
+          ask: "What type of food does {name} serve?",
+          hint: "Use lowercase OSM values, e.g. pizza, burger, chinese. Separate several with a semicolon.",
+          any: [["amenity=restaurant|fast_food", "name"]],
+          ui: "text",
+          ph: "pizza",
+          chips: [
+            "pizza",
+            "burger",
+            "italian",
+            "chinese",
+            "sushi",
+            "indian",
+            "mexican",
+            "sandwich",
+            "kebab",
+            "thai",
+            "coffee_shop",
+          ],
+          val: /^[a-z_;]{3,60}$/,
+          err: "Use lowercase letters, underscores and semicolons",
+        },
+        {
+          id: "takeaway",
+          cat: "Food",
+          t: "nw",
+          xp: 10,
+          key: "takeaway",
+          icon: "🥡",
+          title: "Takeaway",
+          ask: "Does {name} offer takeaway?",
+          any: [[FOOD, "name"]],
+          ui: "choice",
+          opts: [
+            { l: "Yes", v: "yes" },
+            { l: "No", v: "no" },
+            { l: "Takeaway only", v: "only" },
+          ],
+        },
+        {
+          id: "outdoor",
+          cat: "Food",
+          t: "nw",
+          xp: 10,
+          key: "outdoor_seating",
+          icon: "🪑",
+          title: "Outdoor seating",
+          ask: "Does {name} have outdoor seating?",
+          any: [[FOOD, "name"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "wifi",
+          cat: "Food",
+          t: "nw",
+          xp: 10,
+          key: "internet_access",
+          icon: "📶",
+          title: "Internet access",
+          ask: "Does {name} offer internet access?",
+          any: [["amenity=cafe|restaurant|pub|library|bar", "name"]],
+          ui: "choice",
+          opts: [
+            { l: "Wi-Fi", v: "wlan" },
+            { l: "Wired", v: "wired" },
+            { l: "None", v: "no" },
+          ],
+        },
+        {
+          id: "hours",
+          cat: "Shops",
+          t: "nw",
+          xp: 30,
+          key: "opening_hours",
+          icon: "🕒",
+          title: "Opening hours",
+          ask: "When is {name} open?",
+          hint: "OSM opening_hours syntax. Only answer if you saw the sign or the official site.",
+          any: [SHOP, [FOOD, "name"], [SERV, "name"]],
+          ui: "text",
+          ph: "Mo-Fr 09:00-17:00; Sa 10:00-14:00",
+          chips: [
+            "Mo-Su 09:00-17:00",
+            "Mo-Fr 09:00-17:00",
+            "Mo-Sa 10:00-18:00",
+            "24/7",
+          ],
+          val: /^[A-Za-z0-9:;,\-\/ "+\[\]()]{3,200}$/,
+          err: "That does not look like opening_hours syntax",
+        },
+        {
+          id: "phone",
+          cat: "Shops",
+          t: "nw",
+          xp: 20,
+          key: "phone",
+          also: ["contact:phone"],
+          icon: "📞",
+          title: "Phone number",
+          ask: "What is the phone number of {name}?",
+          hint: "International format, e.g. +1 403 555 0100.",
+          any: [SHOP, [FOOD, "name"], [SERV, "name"]],
+          ui: "text",
+          ph: "+1 403 555 0100",
+          val: /^\+\d[\d\s\-()]{6,22}$/,
+          err: "Use international format starting with +",
+        },
+        {
+          id: "atm_op",
+          cat: "Shops",
+          t: "nw",
+          xp: 15,
+          key: "operator",
+          also: ["brand"],
+          icon: "🏧",
+          title: "ATM operator",
+          ask: "Which bank or company operates this ATM?",
+          any: [["amenity=atm"]],
+          ui: "text",
+          ph: "Bank name",
+          val: /^.{2,60}$/,
+          err: "Enter a name",
+        },
+        {
+          id: "postbox",
+          cat: "Shops",
+          t: "n",
+          xp: 20,
+          key: "collection_times",
+          icon: "📮",
+          title: "Post box collection times",
+          ask: "When is this post box emptied?",
+          any: [["amenity=post_box"]],
+          ui: "text",
+          ph: "Mo-Fr 17:00; Sa 12:00",
+          val: /^[A-Za-z0-9:;,\- ]{3,100}$/,
+          err: "Use opening_hours-style syntax",
+        },
+        {
+          id: "bus_shelter",
+          cat: "Transit",
+          t: "n",
+          xp: 10,
+          key: "shelter",
+          icon: "🚏",
+          title: "Bus stop shelter",
+          ask: "Does this bus stop have a shelter?",
+          any: [["highway=bus_stop"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "bus_bench",
+          cat: "Transit",
+          t: "n",
+          xp: 10,
+          key: "bench",
+          icon: "🪑",
+          title: "Bus stop bench",
+          ask: "Does this bus stop have a bench?",
+          any: [["highway=bus_stop"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "bus_bin",
+          cat: "Transit",
+          t: "n",
+          xp: 10,
+          key: "bin",
+          icon: "🗑️",
+          title: "Bus stop bin",
+          ask: "Is there a waste bin at this bus stop?",
+          any: [["highway=bus_stop"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "bench_back",
+          cat: "Amenities",
+          t: "n",
+          xp: 10,
+          key: "backrest",
+          icon: "🪑",
+          title: "Bench backrest",
+          ask: "Does this bench have a backrest?",
+          any: [["amenity=bench"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "bench_seats",
+          cat: "Amenities",
+          t: "n",
+          xp: 10,
+          key: "seats",
+          icon: "🔢",
+          title: "Bench seats",
+          ask: "How many people can sit on this bench?",
+          any: [["amenity=bench"]],
+          ui: "num",
+          min: 1,
+          max: 20,
+        },
+        {
+          id: "toilet_fee",
+          cat: "Amenities",
+          t: "nw",
+          xp: 10,
+          key: "fee",
+          icon: "🚻",
+          title: "Toilet fee",
+          ask: "Do you have to pay to use this toilet?",
+          any: [["amenity=toilets"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "park_fee",
+          cat: "Amenities",
+          t: "nw",
+          xp: 10,
+          key: "fee",
+          icon: "🅿️",
+          title: "Parking fee",
+          ask: "Do you have to pay to park here?",
+          any: [["amenity=parking"]],
+          ui: "choice",
+          opts: YN,
+        },
+        {
+          id: "park_access",
+          cat: "Amenities",
+          t: "nw",
+          xp: 10,
+          key: "access",
+          icon: "🅿️",
+          title: "Parking access",
+          ask: "Who may use this parking?",
+          any: [["amenity=parking"]],
+          ui: "choice",
+          opts: [
+            { l: "Public", v: "yes" },
+            { l: "Customers only", v: "customers" },
+            { l: "Private", v: "private" },
+          ],
+        },
+        {
+          id: "park_type",
+          cat: "Amenities",
+          t: "nw",
+          xp: 15,
+          key: "parking",
+          icon: "🅿️",
+          title: "Parking type",
+          ask: "What kind of parking is this?",
+          any: [["amenity=parking"]],
+          ui: "choice",
+          opts: [
+            { l: "Surface lot", v: "surface" },
+            { l: "Multi-storey", v: "multi-storey" },
+            { l: "Underground", v: "underground" },
+            { l: "Street side", v: "street_side" },
+          ],
+        },
+        {
+          id: "charge_cap",
+          cat: "Amenities",
+          t: "nw",
+          xp: 20,
+          key: "capacity",
+          icon: "🔌",
+          title: "Charging points",
+          ask: "How many vehicles can charge here at once?",
+          any: [["amenity=charging_station"]],
+          ui: "num",
+          min: 1,
+          max: 100,
+        },
+        {
+          id: "play_surf",
+          cat: "Amenities",
+          t: "nw",
+          xp: 15,
+          key: "surface",
+          icon: "🛝",
+          title: "Playground surface",
+          ask: "What is the ground at this playground?",
+          any: [["leisure=playground"]],
+          ui: "choice",
+          opts: [
+            { l: "Sand", v: "sand" },
+            { l: "Wood chips", v: "woodchips" },
+            { l: "Rubber", v: "rubber" },
+            { l: "Grass", v: "grass" },
+            { l: "Gravel", v: "gravel" },
+            { l: "Paving", v: "paving_stones" },
+          ],
+        },
+        {
+          id: "levels",
+          cat: "Buildings",
+          t: "w",
+          xp: 15,
+          key: "building:levels",
+          icon: "🏢",
+          title: "Building levels",
+          ask: "How many floors above ground does this building have?",
+          hint: "Do not count the roof or basement.",
+          any: [[BUILD]],
+          ui: "num",
+          min: 1,
+          max: 150,
+          off: true,
+        },
+        {
+          id: "housenum",
+          cat: "Buildings",
+          t: "w",
+          xp: 25,
+          key: "addr:housenumber",
+          also: ["addr:housename"],
+          icon: "🔢",
+          title: "House number",
+          ask: "What is the house number of this building?",
+          any: [[BUILD, "addr:street"]],
+          ui: "text",
+          ph: "42",
+          val: /^[0-9A-Za-z][0-9A-Za-z\-\/ ]{0,9}$/,
+          err: "Enter a house number like 42 or 42A",
+        },
+        {
+          id: "tree_leaf",
+          cat: "Nature",
+          t: "n",
+          xp: 10,
+          key: "leaf_type",
+          icon: "🌳",
+          title: "Tree leaf type",
+          ask: "Does this tree have broad leaves or needles?",
+          any: [["natural=tree"]],
+          ui: "choice",
+          opts: [
+            { l: "Broadleaved", v: "broadleaved" },
+            { l: "Needleleaved", v: "needleleaved" },
+          ],
+        },
+      ];
+      const QM = Object.fromEntries(Q.map((q) => [q.id, q]));
 
-/* term parsing: 'k' has, '!k' missing, 'k=a|b' in, 'k!=a|b' not in */
-function parseTerm(t){
-  if(t[0]==='!')return{k:t.slice(1),op:'missing'};
-  let i=t.indexOf('!=');if(i>0)return{k:t.slice(0,i),op:'ne',v:t.slice(i+2).split('|')};
-  i=t.indexOf('=');if(i>0)return{k:t.slice(0,i),op:'in',v:t.slice(i+1).split('|')};
-  return{k:t,op:'has'};
-}
-function termSel(p){
-  const k=`"${p.k}"`;
-  if(p.op==='missing')return`[!${k}]`;
-  if(p.op==='has')return`[${k}]`;
-  if(p.op==='in')return p.v.length>1?`[${k}~"^(${p.v.join('|')})$"]`:`[${k}="${p.v[0]}"]`;
-  return p.v.length>1?`[${k}!~"^(${p.v.join('|')})$"]`:`[${k}!="${p.v[0]}"]`;
-}
-function termTest(p,t){
-  const v=t[p.k];
-  if(p.op==='missing')return v===undefined;
-  if(p.op==='has')return v!==undefined;
-  if(p.op==='in')return p.v.includes(v);
-  return!p.v.includes(v);
-}
-for(const q of Q){
-  q.alts=q.any.map(a=>[...a.filter(Boolean),'!'+q.key,...(q.also||[]).map(k=>'!'+k)].map(parseTerm));
-  q.prefix=q.t==='n'?'node':q.t==='w'?'way':'nw';
-}
-const qMatches=(q,type,tags)=>q.t.includes(type[0])&&q.alts.some(a=>a.every(p=>termTest(p,tags)));
+      function parseTerm(t) {
+        if (t[0] === "!") return { k: t.slice(1), op: "missing" };
+        let i = t.indexOf("!=");
+        if (i > 0)
+          return { k: t.slice(0, i), op: "ne", v: t.slice(i + 2).split("|") };
+        i = t.indexOf("=");
+        if (i > 0)
+          return { k: t.slice(0, i), op: "in", v: t.slice(i + 1).split("|") };
+        return { k: t, op: "has" };
+      }
+      function termSel(p) {
+        const k = `"${p.k}"`;
+        if (p.op === "missing") return `[!${k}]`;
+        if (p.op === "has") return `[${k}]`;
+        if (p.op === "in")
+          return p.v.length > 1
+            ? `[${k}~"^(${p.v.join("|")})$"]`
+            : `[${k}="${p.v[0]}"]`;
+        return p.v.length > 1
+          ? `[${k}!~"^(${p.v.join("|")})$"]`
+          : `[${k}!="${p.v[0]}"]`;
+      }
+      function termTest(p, t) {
+        const v = t[p.k];
+        if (p.op === "missing") return v === undefined;
+        if (p.op === "has") return v !== undefined;
+        if (p.op === "in") return p.v.includes(v);
+        return !p.v.includes(v);
+      }
+      for (const q of Q) {
+        q.alts = q.any.map((a) =>
+          [
+            ...a.filter(Boolean),
+            "!" + q.key,
+            ...(q.also || []).map((k) => "!" + k),
+          ].map(parseTerm),
+        );
+        q.prefix = q.t === "n" ? "node" : q.t === "w" ? "way" : "nw";
+        q.base = q.any.map((a) => a.filter(Boolean).map(parseTerm));
+      }
+      const qMatches = (q, type, tags) =>
+        q.t.includes(type[0]) &&
+        q.alts.some((a) => a.every((p) => termTest(p, tags)));
 
-/* ---------- achievements & levels ---------- */
-const lvlOf=xp=>Math.floor(Math.sqrt(xp/40))+1;
-const xpFor=L=>40*(L-1)**2;
-const TITLES=['Seedling','Sprout','Scout','Surveyor','Wayfinder','Cartographer','Pathfinder','Trailblazer','Mapmaker','Laureate'];
-const titleOf=L=>TITLES[Math.min(Math.floor((L-1)/2),TITLES.length-1)];
-const ACH=[
- {id:'first',icon:'🌱',name:'First Bloom',d:'Make your first edit',test:s=>s.edits>=1},
- {id:'e10',icon:'🌿',name:'Budding',d:'10 edits',test:s=>s.edits>=10},
- {id:'e50',icon:'🌷',name:'Thorny',d:'50 edits',test:s=>s.edits>=50},
- {id:'e100',icon:'🌹',name:'Rose Garden',d:'100 edits',test:s=>s.edits>=100},
- {id:'e500',icon:'👑',name:'Berry Baron',d:'500 edits',test:s=>s.edits>=500},
- {id:'combo5',icon:'⚡',name:'On a Roll',d:'Combo of 5',test:s=>(s.maxCombo||0)>=5},
- {id:'combo10',icon:'🔥',name:'Unstoppable',d:'Combo of 10',test:s=>(s.maxCombo||0)>=10},
- {id:'str3',icon:'📆',name:'Regular',d:'3-day streak',test:s=>s.best>=3},
- {id:'str7',icon:'🗓️',name:'Devoted',d:'7-day streak',test:s=>s.best>=7},
- {id:'str30',icon:'🏆',name:'Evergreen',d:'30-day streak',test:s=>s.best>=30},
- {id:'cats5',icon:'🧭',name:'Wanderer',d:'Edits in 5 categories',test:s=>Object.keys(s.byCat).length>=5},
- {id:'catsall',icon:'💎',name:'Completionist',d:'Edits in every category',test:s=>Object.keys(s.byCat).length>=Object.keys(CATS).length},
- {id:'acc10',icon:'♿',name:'Access Ally',d:'10 Access quests',test:s=>(s.byCat.Access||0)>=10},
- {id:'bike10',icon:'🚲',name:'Pedal Pusher',d:'10 Cycling quests',test:s=>(s.byCat.Cycling||0)>=10},
- {id:'food10',icon:'🍴',name:'Food Critic',d:'10 Food quests',test:s=>(s.byCat.Food||0)>=10},
- {id:'lvl5',icon:'⭐',name:'Level 5',d:'Reach level 5',test:s=>lvlOf(s.xp)>=5},
- {id:'lvl10',icon:'🌟',name:'Level 10',d:'Reach level 10',test:s=>lvlOf(s.xp)>=10},
- {id:'daily1',icon:'🎯',name:'Goal Getter',d:'Finish a daily goal',test:s=>s.dailiesDone>=1},
- {id:'daily10',icon:'🎖️',name:'Overachiever',d:'Finish 10 daily goals',test:s=>s.dailiesDone>=10}
-];
+      const lvlOf = (xp) => Math.floor(Math.sqrt(xp / 40)) + 1;
+      const xpFor = (L) => 40 * (L - 1) ** 2;
+      const TITLES = [
+        "Seedling",
+        "Sprout",
+        "Scout",
+        "Surveyor",
+        "Wayfinder",
+        "Cartographer",
+        "Pathfinder",
+        "Trailblazer",
+        "Mapmaker",
+        "Laureate",
+      ];
+      const titleOf = (L) =>
+        TITLES[Math.min(Math.floor((L - 1) / 2), TITLES.length - 1)];
+      const ACH = [
+        {
+          id: "first",
+          icon: "🌱",
+          name: "First Bloom",
+          d: "Make your first edit",
+          test: (s) => s.edits >= 1,
+        },
+        {
+          id: "e10",
+          icon: "🌿",
+          name: "Budding",
+          d: "10 edits",
+          test: (s) => s.edits >= 10,
+        },
+        {
+          id: "e50",
+          icon: "🌷",
+          name: "Thorny",
+          d: "50 edits",
+          test: (s) => s.edits >= 50,
+        },
+        {
+          id: "e100",
+          icon: "🌹",
+          name: "Rose Garden",
+          d: "100 edits",
+          test: (s) => s.edits >= 100,
+        },
+        {
+          id: "e500",
+          icon: "👑",
+          name: "Berry Baron",
+          d: "500 edits",
+          test: (s) => s.edits >= 500,
+        },
+        {
+          id: "combo5",
+          icon: "⚡",
+          name: "On a Roll",
+          d: "Combo of 5",
+          test: (s) => (s.maxCombo || 0) >= 5,
+        },
+        {
+          id: "combo10",
+          icon: "🔥",
+          name: "Unstoppable",
+          d: "Combo of 10",
+          test: (s) => (s.maxCombo || 0) >= 10,
+        },
+        {
+          id: "str3",
+          icon: "📆",
+          name: "Regular",
+          d: "3-day streak",
+          test: (s) => s.best >= 3,
+        },
+        {
+          id: "str7",
+          icon: "🗓️",
+          name: "Devoted",
+          d: "7-day streak",
+          test: (s) => s.best >= 7,
+        },
+        {
+          id: "str30",
+          icon: "🏆",
+          name: "Evergreen",
+          d: "30-day streak",
+          test: (s) => s.best >= 30,
+        },
+        {
+          id: "cats5",
+          icon: "🧭",
+          name: "Wanderer",
+          d: "Edits in 5 categories",
+          test: (s) => Object.keys(s.byCat).length >= 5,
+        },
+        {
+          id: "catsall",
+          icon: "💎",
+          name: "Completionist",
+          d: "Edits in every category",
+          test: (s) => Object.keys(s.byCat).length >= Object.keys(CATS).length,
+        },
+        {
+          id: "acc10",
+          icon: "♿",
+          name: "Access Ally",
+          d: "10 Access quests",
+          test: (s) => (s.byCat.Access || 0) >= 10,
+        },
+        {
+          id: "bike10",
+          icon: "🚲",
+          name: "Pedal Pusher",
+          d: "10 Cycling quests",
+          test: (s) => (s.byCat.Cycling || 0) >= 10,
+        },
+        {
+          id: "food10",
+          icon: "🍴",
+          name: "Food Critic",
+          d: "10 Food quests",
+          test: (s) => (s.byCat.Food || 0) >= 10,
+        },
+        {
+          id: "lvl5",
+          icon: "⭐",
+          name: "Level 5",
+          d: "Reach level 5",
+          test: (s) => lvlOf(s.xp) >= 5,
+        },
+        {
+          id: "lvl10",
+          icon: "🌟",
+          name: "Level 10",
+          d: "Reach level 10",
+          test: (s) => lvlOf(s.xp) >= 10,
+        },
+        {
+          id: "walk10",
+          icon: "🚶",
+          name: "Trail Walker",
+          d: "10 edits made while walking",
+          test: (s) => (s.walkEdits || 0) >= 10,
+        },
+        {
+          id: "walk50",
+          icon: "🥾",
+          name: "Footpath Hero",
+          d: "50 edits made while walking",
+          test: (s) => (s.walkEdits || 0) >= 50,
+        },
+        {
+          id: "daily1",
+          icon: "🎯",
+          name: "Goal Getter",
+          d: "Finish a daily goal",
+          test: (s) => s.dailiesDone >= 1,
+        },
+        {
+          id: "daily10",
+          icon: "🎖️",
+          name: "Overachiever",
+          d: "Finish 10 daily goals",
+          test: (s) => s.dailiesDone >= 10,
+        },
+      ];
 
-/* ---------- state ---------- */
-const defState=()=>({xp:0,edits:0,byQuest:{},byCat:{},streak:0,best:0,last:'',ach:{},daily:null,dailiesDone:0,maxCombo:0,combo:{n:0,t:0},skip:{},off:Object.fromEntries(Q.filter(q=>q.off).map(q=>[q.id,1])),log:[],cs:null});
-let S=defState(),stateKey='roseberry:s:guest';
-function loadState(uid){stateKey='roseberry:s:'+(uid||'guest');try{S={...defState(),...JSON.parse(localStorage.getItem(stateKey)||'{}')}}catch{S=defState()}ensureDaily()}
-function save(){try{localStorage.setItem(stateKey,JSON.stringify(S))}catch{}}
-function ensureDaily(){
-  const d=today();if(S.daily?.day===d)return;
-  const r=mulberry(hash(d));
-  const cats=Object.keys(CATS).map(c=>[r(),c]).sort((a,b)=>a[0]-b[0]).slice(0,3).map(x=>x[1]);
-  S.daily={day:d,goals:cats.map(c=>({cat:c,n:0,need:5,done:false}))};
-}
+      const defState = () => ({
+        xp: 0,
+        edits: 0,
+        walkEdits: 0,
+        byQuest: {},
+        byCat: {},
+        streak: 0,
+        best: 0,
+        last: "",
+        ach: {},
+        daily: null,
+        dailiesDone: 0,
+        maxCombo: 0,
+        combo: { n: 0, t: 0 },
+        skip: {},
+        off: Object.fromEntries(Q.filter((q) => q.off).map((q) => [q.id, 1])),
+        log: [],
+        cs: null,
+      });
+      let S = defState(),
+        stateKey = "roseberry:s:guest";
+      function loadState(uid) {
+        stateKey = "roseberry:s:" + (uid || "guest");
+        try {
+          S = {
+            ...defState(),
+            ...JSON.parse(localStorage.getItem(stateKey) || "{}"),
+          };
+        } catch {
+          S = defState();
+        }
+        ensureDaily();
+      }
+      function save() {
+        try {
+          localStorage.setItem(stateKey, JSON.stringify(S));
+        } catch {}
+      }
+      function ensureDaily() {
+        const d = today();
+        if (S.daily?.day === d) return;
+        const r = mulberry(hash(d));
+        const cats = Object.keys(CATS)
+          .map((c) => [r(), c])
+          .sort((a, b) => a[0] - b[0])
+          .slice(0, 3)
+          .map((x) => x[1]);
+        S.daily = {
+          day: d,
+          goals: cats.map((c) => ({ cat: c, n: 0, need: 5, done: false })),
+        };
+      }
 
-/* ---------- OSM auth + API ---------- */
-const OSM='https://www.openstreetmap.org';
-const REDIRECT=location.origin+location.pathname;
-let token=localStorage.getItem('roseberry:token')||'',user=null;
-/* Put your own OSM OAuth2 Client ID here (public app, no secret) so visitors never need to register anything. */
-const CLIENT_ID='WMdhb7dR-uyiup5_MrNF41QlaxzLfKk-Cqdf8Xxc2Fs';
-const clientId=()=>CLIENT_ID||localStorage.getItem('roseberry:client')||'';
-const b64u=a=>btoa(String.fromCharCode(...new Uint8Array(a))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-async function login(){
-  if(!clientId()){openSetup();return}
-  const v=b64u(crypto.getRandomValues(new Uint8Array(48))),st=b64u(crypto.getRandomValues(new Uint8Array(12)));
-  const ch=b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
-  sessionStorage.setItem('roseberry:pkce',JSON.stringify({v,st}));
-  const p=new URLSearchParams({response_type:'code',client_id:clientId(),redirect_uri:REDIRECT,scope:'read_prefs write_api',state:st,code_challenge:ch,code_challenge_method:'S256'});
-  location.href=OSM+'/oauth2/authorize?'+p;
-}
-async function handleRedirect(){
-  const p=new URLSearchParams(location.search);
-  if(!p.has('code')&&!p.has('error'))return;
-  history.replaceState({},'',location.pathname);
-  if(p.has('error')){toast('Login failed: '+p.get('error_description')||p.get('error'),1);return}
-  try{
-    const{v,st}=JSON.parse(sessionStorage.getItem('roseberry:pkce')||'{}');
-    if(!v||st!==p.get('state'))throw new Error('state mismatch');
-    const r=await fetch(OSM+'/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code:p.get('code'),redirect_uri:REDIRECT,client_id:clientId(),code_verifier:v})});
-    const j=await r.json();if(!r.ok||!j.access_token)throw new Error(j.error_description||j.error||r.status);
-    token=j.access_token;localStorage.setItem('roseberry:token',token);
-  }catch(e){toast('Login failed: '+e.message,1)}
-  sessionStorage.removeItem('roseberry:pkce');
-}
-function logout(){token='';user=null;localStorage.removeItem('roseberry:token');loadState(null);renderAll()}
-async function osm(path,opt={}){
-  const r=await fetch(OSM+'/api/0.6'+path,{...opt,headers:{...(token?{Authorization:'Bearer '+token}:{}),...(opt.headers||{})}});
-  if(!r.ok){const t=await r.text();if(r.status===401){token='';localStorage.removeItem('roseberry:token');user=null;renderAll()}throw Object.assign(new Error(t||r.statusText),{status:r.status})}
-  return r;
-}
-async function fetchUser(){
-  if(!token)return;
-  try{const j=await(await osm('/user/details.json')).json();user=j.user;loadState(user.id)}catch(e){toast('Could not load your OSM profile: '+e.message,1)}
-}
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
-const csXml=c=>`<osm><changeset><tag k="created_by" v="Roseberry 0.1"/><tag k="comment" v="${esc(c)}"/><tag k="source" v="survey"/></changeset></osm>`;
-function csComment(){
-  const parts=Object.entries(S.csKeys||{}).filter(([,n])=>n>0).map(([k,n])=>n>1?`${k} (${n})`:k);
-  return('Add '+(parts.join(', ')||'tags')).slice(0,255);
-}
-async function updateCS(){
-  if(!S.cs)return;
-  try{await osm(`/changeset/${S.cs}`,{method:'PUT',headers:{'Content-Type':'text/xml'},body:csXml(csComment())})}catch(e){}
-}
-async function ensureCS(key,verb='Add'){
-  if(S.cs)return S.cs;
-  const r=await osm('/changeset/create',{method:'PUT',headers:{'Content-Type':'text/xml'},body:csXml(`${verb} ${key}`)});
-  S.cs=+(await r.text());S.csKeys={};save();return S.cs;
-}
-async function closeCS(){
-  if(!S.cs)return;
-  try{await osm(`/changeset/${S.cs}/close`,{method:'PUT'});toast('Changeset closed')}catch(e){}
-  S.cs=null;save();renderLog();
-}
-async function getElem(type,id){const j=await(await osm(`/${type}/${id}.json`)).json();return j.elements[0]}
-function elemXml(type,e,tags,cs){
-  const tg=Object.entries(tags).map(([k,v])=>`<tag k="${esc(k)}" v="${esc(v)}"/>`).join('');
-  if(type==='node')return`<osm><node id="${e.id}" version="${e.version}" changeset="${cs}" lat="${e.lat}" lon="${e.lon}">${tg}</node></osm>`;
-  return`<osm><way id="${e.id}" version="${e.version}" changeset="${cs}">${e.nodes.map(n=>`<nd ref="${n}"/>`).join('')}${tg}</way></osm>`;
-}
-async function saveElem(type,e,tags,key,verb){
-  for(let i=0;i<2;i++){
-    const cs=await ensureCS(key,verb);
-    try{
-      const r=await osm(`/${type}/${e.id}`,{method:'PUT',headers:{'Content-Type':'text/xml'},body:elemXml(type,e,tags,cs)});
-      return{version:+(await r.text()),cs};
-    }catch(err){
-      if(err.status===409&&/changeset/i.test(err.message)&&i===0){S.cs=null;continue}
-      throw err;
-    }
-  }
-}
+      const OSM = "https://www.openstreetmap.org";
+      const REDIRECT = location.origin + location.pathname;
+      let token = localStorage.getItem("roseberry:token") || "",
+        user = null;
+      const CLIENT_ID = "";
+      const clientId = () =>
+        CLIENT_ID || localStorage.getItem("roseberry:client") || "";
+      const b64u = (a) =>
+        btoa(String.fromCharCode(...new Uint8Array(a)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=+$/, "");
+      async function login() {
+        if (!clientId()) {
+          openSetup();
+          return;
+        }
+        const v = b64u(crypto.getRandomValues(new Uint8Array(48))),
+          st = b64u(crypto.getRandomValues(new Uint8Array(12)));
+        const ch = b64u(
+          await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)),
+        );
+        sessionStorage.setItem("roseberry:pkce", JSON.stringify({ v, st }));
+        const p = new URLSearchParams({
+          response_type: "code",
+          client_id: clientId(),
+          redirect_uri: REDIRECT,
+          scope: "read_prefs write_api",
+          state: st,
+          code_challenge: ch,
+          code_challenge_method: "S256",
+        });
+        location.href = OSM + "/oauth2/authorize?" + p;
+      }
+      async function handleRedirect() {
+        const p = new URLSearchParams(location.search);
+        if (!p.has("code") && !p.has("error")) return;
+        history.replaceState({}, "", location.pathname);
+        if (p.has("error")) {
+          toast(
+            "Login failed: " + p.get("error_description") || p.get("error"),
+            1,
+          );
+          return;
+        }
+        try {
+          const { v, st } = JSON.parse(
+            sessionStorage.getItem("roseberry:pkce") || "{}",
+          );
+          if (!v || st !== p.get("state")) throw new Error("state mismatch");
+          const r = await fetch(OSM + "/oauth2/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+              grant_type: "authorization_code",
+              code: p.get("code"),
+              redirect_uri: REDIRECT,
+              client_id: clientId(),
+              code_verifier: v,
+            }),
+          });
+          const j = await r.json();
+          if (!r.ok || !j.access_token)
+            throw new Error(j.error_description || j.error || r.status);
+          token = j.access_token;
+          localStorage.setItem("roseberry:token", token);
+        } catch (e) {
+          toast("Login failed: " + e.message, 1);
+        }
+        sessionStorage.removeItem("roseberry:pkce");
+      }
+      function logout() {
+        token = "";
+        user = null;
+        localStorage.removeItem("roseberry:token");
+        loadState(null);
+        renderAll();
+      }
+      async function osm(path, opt = {}) {
+        const r = await fetch(OSM + "/api/0.6" + path, {
+          ...opt,
+          headers: {
+            ...(token ? { Authorization: "Bearer " + token } : {}),
+            ...(opt.headers || {}),
+          },
+        });
+        if (!r.ok) {
+          const t = await r.text();
+          if (r.status === 401) {
+            token = "";
+            localStorage.removeItem("roseberry:token");
+            user = null;
+            renderAll();
+          }
+          throw Object.assign(new Error(t || r.statusText), {
+            status: r.status,
+          });
+        }
+        return r;
+      }
+      async function fetchUser() {
+        if (!token) return;
+        try {
+          const j = await (await osm("/user/details.json")).json();
+          user = j.user;
+          loadState(user.id);
+        } catch (e) {
+          toast("Could not load your OSM profile: " + e.message, 1);
+        }
+      }
+      const esc = (s) =>
+        String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&apos;");
+      const csXml = (c) =>
+        `<osm><changeset><tag k="created_by" v="Roseberry 0.1"/><tag k="comment" v="${esc(c)}"/><tag k="source" v="survey"/></changeset></osm>`;
+      function csComment() {
+        const parts = Object.entries(S.csKeys || {})
+          .filter(([, n]) => n > 0)
+          .map(([k, n]) => (n > 1 ? `${k} (${n})` : k));
+        return ("Add " + (parts.join(", ") || "tags")).slice(0, 255);
+      }
+      async function updateCS() {
+        if (!S.cs) return;
+        try {
+          await osm(`/changeset/${S.cs}`, {
+            method: "PUT",
+            headers: { "Content-Type": "text/xml" },
+            body: csXml(csComment()),
+          });
+        } catch (e) {}
+      }
+      async function ensureCS(key, verb = "Add") {
+        if (S.cs) return S.cs;
+        const r = await osm("/changeset/create", {
+          method: "PUT",
+          headers: { "Content-Type": "text/xml" },
+          body: csXml(`${verb} ${key}`),
+        });
+        S.cs = +(await r.text());
+        S.csKeys = {};
+        save();
+        return S.cs;
+      }
+      async function closeCS() {
+        if (!S.cs) return;
+        try {
+          await osm(`/changeset/${S.cs}/close`, { method: "PUT" });
+          toast("Changeset closed");
+        } catch (e) {}
+        S.cs = null;
+        save();
+        renderLog();
+      }
+      async function getElem(type, id) {
+        const j = await (await osm(`/${type}/${id}.json`)).json();
+        return j.elements[0];
+      }
+      function elemXml(type, e, tags, cs) {
+        const tg = Object.entries(tags)
+          .map(([k, v]) => `<tag k="${esc(k)}" v="${esc(v)}"/>`)
+          .join("");
+        if (type === "node")
+          return `<osm><node id="${e.id}" version="${e.version}" changeset="${cs}" lat="${e.lat}" lon="${e.lon}">${tg}</node></osm>`;
+        return `<osm><way id="${e.id}" version="${e.version}" changeset="${cs}">${e.nodes.map((n) => `<nd ref="${n}"/>`).join("")}${tg}</way></osm>`;
+      }
+      async function saveElem(type, e, tags, key, verb) {
+        for (let i = 0; i < 2; i++) {
+          const cs = await ensureCS(key, verb);
+          try {
+            const r = await osm(`/${type}/${e.id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "text/xml" },
+              body: elemXml(type, e, tags, cs),
+            });
+            return { version: +(await r.text()), cs };
+          } catch (err) {
+            if (
+              err.status === 409 &&
+              /changeset/i.test(err.message) &&
+              i === 0
+            ) {
+              S.cs = null;
+              continue;
+            }
+            throw err;
+          }
+        }
+      }
 
-/* ---------- map + scanning ---------- */
-const map=L.map('map',{zoomControl:true}).setView(JSON.parse(localStorage.getItem('roseberry:view')||'[48.5,10]'),+localStorage.getItem('roseberry:zoom')||5);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
-const pins=L.layerGroup().addTo(map);
-let hl=null,els=new Map(),sel=null,lastBounds=null,scanning=false,scanInfo='Zoom in to level 15+ and press Scan area.';
+      const map = L.map("map", { zoomControl: true }).setView(
+        JSON.parse(localStorage.getItem("roseberry:view") || "[48.5,10]"),
+        +localStorage.getItem("roseberry:zoom") || 5,
+      );
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }).addTo(map);
+      const pins = L.layerGroup().addTo(map);
+      const RANGE = 40;
+      const WALK_BONUS = 1.25;
+      let hl = null,
+        areaBox = null,
+        els = new Map(),
+        sel = null,
+        lastBounds = null,
+        scanning = false,
+        everScanned = false,
+        busy = false;
+      let mode = "play",
+        guest = sessionStorage.getItem("roseberry:guest") === "1";
+      let gps = null,
+        watchId = null,
+        youDot = null,
+        youAcc = null,
+        rangeRing = null;
 
-function mid(e){
-  if(e.type==='node')return[e.lat,e.lon];
-  const g=e.geometry||[];const p=g[Math.floor(g.length/2)];
-  return p?[p.lat,p.lon]:e.bounds?[(e.bounds.minlat+e.bounds.maxlat)/2,(e.bounds.minlon+e.bounds.maxlon)/2]:null;
-}
-const enabled=()=>Q.filter(q=>!S.off[q.id]);
-const ekey=e=>e.type+'/'+e.id;
-function pending(e){return Q.filter(q=>!S.off[q.id]&&qMatches(q,e.type,e.tags||{})&&!(S.skip[ekey(e)]||[]).includes(q.id))}
+      function mid(e) {
+        return e.center ? [e.center.lat, e.center.lon] : null;
+      }
+      const enabled = () => Q.filter((q) => !S.off[q.id]);
+      const ekey = (e) => e.type + "/" + e.id;
+      function pending(e) {
+        return Q.filter(
+          (q) =>
+            !S.off[q.id] &&
+            qMatches(q, e.type, e.tags || {}) &&
+            !(S.skip[ekey(e)] || []).includes(q.id),
+        );
+      }
+      const gpsPt = () => (gps ? [gps.lat, gps.lng] : null);
+      const inRange = (e) => gps && map.distance(gpsPt(), mid(e)) <= RANGE;
+      const ready = () => !!(token || guest);
 
-const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
-async function overpass(ql){
-  let last=new Error('Overpass unavailable');
-  for(let round=0;round<2;round++){
-    for(const u of OVERPASS){
-      try{
-        const r=await fetch(u,{method:'POST',body:new URLSearchParams({data:ql})});
-        if(r.ok)return await r.json();
-        last=new Error('Overpass error '+r.status);
-      }catch(e){last=e}
-    }
-    await new Promise(r=>setTimeout(r,1500));
-  }
-  throw last;
-}
-async function scan(){
-  if(scanning)return;
-  if(map.getZoom()<15){toast('Zoom in to level 15 or closer first');return}
-  const qs=enabled();if(!qs.length){toast('All quests are turned off',1);return}
-  scanning=true;$('#btnScan').disabled=true;$('#btnScan').textContent='Scanning…';
-  const b=map.getBounds(),bbox=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(n=>n.toFixed(6)).join(',');
-  const sels=new Set();
-  for(const q of qs)for(const a of q.alts)sels.add(q.prefix+a.map(termSel).join('')+`(${bbox});`);
-  const ql=`[out:json][timeout:40];(${[...sels].join('')});out tags geom 800;`;
-  try{
-    const j=await overpass(ql);
-    els=new Map();
-    for(const e of j.elements||[]){if(e.tags&&(e.type==='node'||e.type==='way')&&mid(e))els.set(ekey(e),e)}
-    lastBounds=b;
-    let n=0;for(const e of els.values())n+=pending(e).length;
-    scanInfo=`${n} quests on ${els.size} spots in this area`+((j.elements||[]).length>=800?' (result cap reached, zoom in for the rest)':'');
-    if(sel&&!els.has(sel.key))clearSel();
-  }catch(e){toast('Scan failed: '+e.message,1);scanInfo='Scan failed.'}
-  scanning=false;$('#btnScan').disabled=false;$('#btnScan').textContent='Scan area';
-  drawPins();renderQuestTab();renderCatalog();
-}
-function drawPins(){
-  pins.clearLayers();
-  for(const e of els.values()){
-    const ps=pending(e);if(!ps.length)continue;
-    const c=CATS[ps[0].cat],isSel=sel&&sel.key===ekey(e);
-    const m=L.marker(mid(e),{icon:L.divIcon({className:'',html:`<div class="pin${isSel?' sel':''}" style="--c:${c.color}">${ps[0].icon}</div>`,iconSize:[30,30],iconAnchor:[15,15]})});
-    m.on('click',()=>select(ekey(e)));
-    pins.addLayer(m);
-  }
-}
-function clearSel(){sel=null;if(hl){map.removeLayer(hl);hl=null}}
-function select(key,qid,pan){
-  const e=els.get(key);if(!e)return;
-  const ps=pending(e);if(!ps.length){drawPins();return}
-  sel={key,qid:(qid&&ps.find(q=>q.id===qid)?qid:ps[0].id)};
-  if(hl){map.removeLayer(hl);hl=null}
-  if(e.type==='way'&&e.geometry)hl=L.polyline(e.geometry.map(p=>[p.lat,p.lon]),{color:'#ff7a9c',weight:6,opacity:.9}).addTo(map);
-  if(pan)map.panTo(mid(e),{animate:true});
-  drawPins();switchTab('quest');renderQuestTab();
-}
-function allPending(from){
-  const out=[];
-  for(const e of els.values())for(const q of pending(e))out.push({e,q,d:map.distance(from,mid(e))});
-  return out.sort((a,b)=>a.d-b.d);
-}
-function nextQuest(afterKey){
-  const e=afterKey&&els.get(afterKey);
-  if(e&&pending(e).length){select(afterKey,null,false);return}
-  const from=e?mid(e):map.getCenter();
-  const list=allPending(from);
-  if(!list.length){clearSel();drawPins();renderQuestTab();toast('Area cleared! Move the map and scan again 🌹');return}
-  select(ekey(list[0].e),list[0].q.id,true);
-}
+      function bearingText(a, b) {
+        const r = (x) => (x * Math.PI) / 180;
+        const y = Math.sin(r(b[1] - a[1])) * Math.cos(r(b[0]));
+        const x =
+          Math.cos(r(a[0])) * Math.sin(r(b[0])) -
+          Math.sin(r(a[0])) * Math.cos(r(b[0])) * Math.cos(r(b[1] - a[1]));
+        const d = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+        const names = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+        const arrows = ["⬆️", "↗️", "➡️", "↘️", "⬇️", "↙️", "⬅️", "↖️"];
+        const i = Math.round(d / 45) % 8;
+        return arrows[i] + " " + names[i];
+      }
 
-/* ---------- answering ---------- */
-let busy=false;
-async function submitAnswer(value){
-  if(busy||!sel)return;
-  const e=els.get(sel.key),q=QM[sel.qid];
-  if(!token){toast('Log in to OpenStreetMap to save answers',1);return}
-  busy=true;renderQuestTab();
-  try{
-    const cur=await getElem(e.type,e.id);
-    if(cur.tags?.[q.key]!==undefined){
-      toast('Someone already added that tag, skipping');e.tags=cur.tags;busy=false;nextQuest(sel.key);return;
-    }
-    const tags={...(cur.tags||{}),[q.key]:String(value).trim().slice(0,255)};
-    const res=await saveElem(e.type,cur,tags,q.key);
-    e.tags=tags;
-    S.csKeys=S.csKeys||{};S.csKeys[q.key]=(S.csKeys[q.key]||0)+1;updateCS();
-    const r=award(q);
-    S.log.unshift({t:Date.now(),type:e.type,id:e.id,qid:q.id,key:q.key,value:tags[q.key],ver:res.version,cs:res.cs,gain:r.gain,name:e.tags.name||''});
-    S.log=S.log.slice(0,30);save();
-    toast(`+${r.gain} XP${r.mult>1?` (combo ×${r.mult.toFixed(1)})`:''}`);
-    r.msgs.forEach((m,i)=>setTimeout(()=>toast(m),400*(i+1)));
-    const k=sel.key;busy=false;renderAll();nextQuest(k);
-  }catch(err){
-    busy=false;renderQuestTab();
-    toast(err.status===410?'That element was deleted':err.status===409?'Edit conflict, the element changed. Rescan and retry.':'Save failed: '+err.message.slice(0,140),1);
-  }
-}
-function award(q){
-  ensureDaily();
-  const now=Date.now(),c=S.combo,msgs=[];
-  c.n=(now-c.t<90000)?c.n+1:1;c.t=now;S.maxCombo=Math.max(S.maxCombo||0,c.n);
-  const mult=1+Math.min(c.n-1,10)*0.1;let gain=Math.round(q.xp*mult);
-  const d=today();
-  if(S.last!==d){
-    S.streak=S.last===yesterday()?S.streak+1:1;S.best=Math.max(S.best,S.streak);S.last=d;
-    if(S.streak>1){const b=Math.min(S.streak,10)*10;gain+=b;msgs.push(`🔥 ${S.streak}-day streak! +${b} XP`)}
-  }
-  const g=S.daily.goals.find(g=>g.cat===q.cat);
-  if(g&&!g.done){g.n++;if(g.n>=g.need){g.done=true;S.dailiesDone++;gain+=100;msgs.push(`🎯 Daily ${q.cat} goal done! +100 XP`)}}
-  const before=lvlOf(S.xp);S.xp+=gain;S.edits++;
-  S.byQuest[q.id]=(S.byQuest[q.id]||0)+1;S.byCat[q.cat]=(S.byCat[q.cat]||0)+1;
-  if(lvlOf(S.xp)>before)msgs.push(`⬆️ Level ${lvlOf(S.xp)}: ${titleOf(lvlOf(S.xp))}!`);
-  for(const a of ACH)if(!S.ach[a.id]&&a.test(S)){S.ach[a.id]=Date.now();msgs.push(`${a.icon} Badge: ${a.name}`)}
-  return{gain,mult,msgs};
-}
-async function undoLast(){
-  const l=S.log[0];if(!l||busy)return;
-  busy=true;
-  try{
-    const cur=await getElem(l.type,l.id);
-    if(cur.version!==l.ver)throw new Error('The element was edited by someone else since, so I will not touch it.');
-    const tags={...cur.tags};delete tags[l.key];
-    await saveElem(l.type,cur,tags,l.key,'Revert');
-    if(S.cs===l.cs&&S.csKeys?.[l.key]){S.csKeys[l.key]--;updateCS()}
-    const q=QM[l.qid];
-    S.xp=Math.max(0,S.xp-l.gain);S.edits=Math.max(0,S.edits-1);
-    S.byQuest[q.id]=Math.max(0,(S.byQuest[q.id]||1)-1);S.byCat[q.cat]=Math.max(0,(S.byCat[q.cat]||1)-1);
-    S.log.shift();save();
-    const e=els.get(l.type+'/'+l.id);if(e){e.tags=tags}
-    toast('Edit reverted');
-  }catch(err){toast('Undo failed: '+err.message.slice(0,140),1)}
-  busy=false;drawPins();renderAll();
-}
+      const OVERPASS = [
+        "https://overpass-api.de/api/interpreter",
+        "https://overpass.kumi.systems/api/interpreter",
+        "https://overpass.private.coffee/api/interpreter",
+      ];
+      function overpass(ql) {
+        return new Promise((resolve, reject) => {
+          let done = false,
+            failed = 0,
+            next = 0,
+            lastErr;
+          const ctls = [];
+          const start = () => {
+            if (done || next >= OVERPASS.length) return;
+            const i = next++,
+              ctl = new AbortController();
+            ctls.push(ctl);
+            fetch(OVERPASS[i], {
+              method: "POST",
+              body: new URLSearchParams({ data: ql }),
+              signal: ctl.signal,
+            })
+              .then((r) =>
+                r.ok
+                  ? r.json()
+                  : Promise.reject(new Error("Overpass error " + r.status)),
+              )
+              .then((j) => {
+                if (done) return;
+                done = true;
+                ctls.forEach((c) => c.abort());
+                resolve(j);
+              })
+              .catch((e) => {
+                if (done) return;
+                lastErr = e;
+                failed++;
+                if (failed >= OVERPASS.length) {
+                  done = true;
+                  reject(lastErr);
+                } else start();
+              });
+            setTimeout(start, 3500);
+          };
+          start();
+        });
+      }
 
-/* ---------- rendering ---------- */
-function switchTab(t){$$('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));$$('.tab').forEach(s=>s.classList.toggle('on',s.id==='tab-'+t))}
-function renderHud(){
-  const L=lvlOf(S.xp),a=xpFor(L),b=xpFor(L+1);
-  $('#lvl').textContent='Lv '+L;$('#xpbar').style.width=Math.min(100,(S.xp-a)/(b-a)*100)+'%';
-  $('#xptxt').textContent=`${S.xp} XP · ${titleOf(L)}`;
-  const c=S.combo,live=Date.now()-c.t<90000&&c.n>1;
-  $('#combo').hidden=!live;$('#combo').textContent=`⚡ ×${(1+Math.min(c.n-1,10)*0.1).toFixed(1)}`;
-  $('#streak').hidden=!(S.streak>0&&(S.last===today()||S.last===yesterday()));$('#streak').textContent='🔥 '+S.streak;
-  $('#btnLogin').textContent=user?`Log out (${user.display_name})`:'Log in';
-}
-function questCard(){
-  const e=els.get(sel.key),q=QM[sel.qid],c=CATS[q.cat];
-  const nm=e.tags.name?`<b>${h(e.tags.name)}</b>`:'this place';
-  const ask=h(q.ask).replace('{name}',nm.replace(/\\/g,'\\\\'));
-  const others=pending(e).filter(x=>x.id!==q.id);
-  let ui='';
-  if(q.ui==='choice')ui=`<div class="opts">${q.opts.map((o,i)=>`<button class="opt" data-opt="${i}" ${busy?'disabled':''}>${h(o.l)}</button>`).join('')}</div>`;
-  else ui=`${q.chips?`<div class="chips">${q.chips.map(x=>`<button data-chip="${h(x)}">${h(x)}</button>`).join('')}</div>`:''}
-    <div class="row"><input id="ans" type="${q.ui==='num'?'number':'text'}" ${q.ui==='num'?`min="${q.min}" max="${q.max}" step="1"`:''} placeholder="${h(q.ph||'')}" autocomplete="off"><button class="btn pri" data-submit ${busy?'disabled':''}>Save</button></div><div class="small" id="ansErr" style="color:var(--bad);min-height:18px"></div>`;
-  const tagList=Object.entries(e.tags).map(([k,v])=>`<div class="small"><span class="mut">${h(k)}</span> = ${h(v)}</div>`).join('');
-  return`<div class="card"><div class="row" style="justify-content:space-between"><span class="chip" style="border-color:${c.color}">${c.icon} ${q.cat}</span><span class="pill">+${q.xp} XP</span></div>
-  <h3 style="margin-top:8px">${q.icon} ${h(q.title)}</h3><div>${ask}</div>
-  ${q.hint?`<div class="small mut" style="margin-top:4px">${h(q.hint)}</div>`:''}
+      async function scan(center, half) {
+        if (scanning) return;
+        const qs = enabled();
+        if (!qs.length) {
+          toast("All quest types are turned off", 1);
+          return;
+        }
+        if (!center && map.getZoom() < 15) {
+          toast("Zoom in closer first");
+          return;
+        }
+        const c = center || map.getCenter();
+        let hw = half;
+        if (!hw) {
+          const vb = map.getBounds();
+          hw = Math.min(
+            600,
+            Math.max(
+              250,
+              (map.distance(vb.getNorthWest(), vb.getNorthEast()) / 2) * 0.9,
+            ),
+          );
+        }
+        const dLat = hw / 111320,
+          dLon = hw / (111320 * Math.cos((c.lat * Math.PI) / 180));
+        const b = L.latLngBounds(
+          [c.lat - dLat, c.lng - dLon],
+          [c.lat + dLat, c.lng + dLon],
+        );
+        const bbox = [b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]
+          .map((n) => n.toFixed(6))
+          .join(",");
+        const sels = new Set();
+        for (const q of qs)
+          for (const a of q.base)
+            sels.add(q.prefix + a.map(termSel).join("") + `(${bbox});`);
+        const ql = `[out:json][timeout:25];(${[...sels].join("")});out tags center 1500;`;
+        if (areaBox) map.removeLayer(areaBox);
+        areaBox = L.rectangle(b, {
+          color: "#e0527a",
+          weight: 1,
+          fill: false,
+          dashArray: "4 4",
+          interactive: false,
+        }).addTo(map);
+        scanning = true;
+        renderStage();
+        try {
+          const j = await overpass(ql);
+          els = new Map();
+          for (const e of j.elements || []) {
+            if (e.tags && (e.type === "node" || e.type === "way") && mid(e))
+              els.set(ekey(e), e);
+          }
+          lastBounds = b;
+          everScanned = true;
+          if (sel && !els.has(sel.key)) clearSel();
+        } catch (e) {
+          toast("Scan failed: " + e.message, 1);
+        }
+        scanning = false;
+        drawPins();
+        if (!sel) mode === "walk" ? walkRefresh() : nextQuest(null);
+        renderAll();
+      }
+
+      function totalPending() {
+        let n = 0;
+        for (const e of els.values()) n += pending(e).length;
+        return n;
+      }
+
+      function drawPins() {
+        pins.clearLayers();
+        for (const e of els.values()) {
+          const ps = pending(e);
+          if (!ps.length) continue;
+          const c = CATS[ps[0].cat],
+            isSel = sel && sel.key === ekey(e);
+          const far = mode === "walk" && gps && !inRange(e);
+          const m = L.marker(mid(e), {
+            icon: L.divIcon({
+              className: "",
+              html: `<div class="pin${isSel ? " sel" : ""}${far ? " far" : ""}" style="--c:${c.color}">${ps[0].icon}</div>`,
+              iconSize: [28, 28],
+              iconAnchor: [14, 14],
+            }),
+          });
+          m.on("click", () => select(ekey(e), null, false));
+          pins.addLayer(m);
+        }
+      }
+
+      async function showWay(id, key) {
+        try {
+          const j = await (await osm(`/way/${id}/full.json`)).json();
+          if (!sel || sel.key !== key) return;
+          const nodes = new Map(
+            j.elements
+              .filter((x) => x.type === "node")
+              .map((n) => [n.id, [n.lat, n.lon]]),
+          );
+          const w = j.elements.find((x) => x.type === "way");
+          const pts = w.nodes.map((n) => nodes.get(n)).filter(Boolean);
+          if (hl) map.removeLayer(hl);
+          hl = L.polyline(pts, {
+            color: "#ff7a9c",
+            weight: 6,
+            opacity: 0.9,
+          }).addTo(map);
+        } catch (e) {}
+      }
+      function clearSel() {
+        sel = null;
+        if (hl) {
+          map.removeLayer(hl);
+          hl = null;
+        }
+      }
+      function select(key, qid, pan) {
+        const e = els.get(key);
+        if (!e) return;
+        const ps = pending(e);
+        if (!ps.length) {
+          drawPins();
+          renderStage();
+          return;
+        }
+        if (mode === "walk" && !inRange(e)) {
+          toast(`Get within ${RANGE} m to answer this one`);
+          return;
+        }
+        sel = {
+          key,
+          qid: qid && ps.find((q) => q.id === qid) ? qid : ps[0].id,
+        };
+        if (hl) {
+          map.removeLayer(hl);
+          hl = null;
+        }
+        if (e.type === "way") showWay(e.id, key);
+        if (pan)
+          map.setView(mid(e), Math.max(map.getZoom(), 17), { animate: true });
+        drawPins();
+        renderStage();
+      }
+      function nextQuest(from) {
+        const origin = from || map.getCenter();
+        const list = [];
+        for (const e of els.values())
+          for (const q of pending(e))
+            list.push({ e, q, d: map.distance(origin, mid(e)) });
+        list.sort((a, b) => a.d - b.d);
+        if (!list.length) {
+          clearSel();
+          drawPins();
+          renderStage();
+          return;
+        }
+        select(ekey(list[0].e), list[0].q.id, true);
+      }
+      function advanceFrom(k) {
+        const e = k && els.get(k);
+        if (e && pending(e).length && (mode === "play" || inRange(e))) {
+          select(k, null, false);
+          return;
+        }
+        clearSel();
+        if (mode === "walk") walkRefresh();
+        else nextQuest(e ? mid(e) : null);
+      }
+
+      function startWalk() {
+        if (!navigator.geolocation) {
+          toast("This device has no location access", 1);
+          return false;
+        }
+        mode = "walk";
+        gps = null;
+        clearSel();
+        drawPins();
+        watchId = navigator.geolocation.watchPosition(
+          onFix,
+          (err) => {
+            toast("Location error: " + err.message, 1);
+            if (!gps) setMode("play");
+          },
+          { enableHighAccuracy: true, maximumAge: 2000, timeout: 25000 },
+        );
+        return true;
+      }
+      function stopWalk() {
+        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+        gps = null;
+        for (const l of [youDot, youAcc, rangeRing]) if (l) map.removeLayer(l);
+        youDot = youAcc = rangeRing = null;
+      }
+      function setMode(m) {
+        if (m === mode) return;
+        if (m === "walk") {
+          if (!startWalk()) return;
+        } else {
+          stopWalk();
+          mode = "play";
+          clearSel();
+          drawPins();
+          if (els.size) nextQuest(null);
+        }
+        renderAll();
+      }
+      function onFix(p) {
+        const first = !gps;
+        gps = {
+          lat: p.coords.latitude,
+          lng: p.coords.longitude,
+          acc: p.coords.accuracy,
+        };
+        const ll = gpsPt();
+        if (!youDot) {
+          youDot = L.circleMarker(ll, {
+            radius: 8,
+            color: "#fff",
+            weight: 2,
+            fillColor: "#3b82f6",
+            fillOpacity: 1,
+            interactive: false,
+          }).addTo(map);
+          youAcc = L.circle(ll, {
+            radius: gps.acc,
+            color: "#3b82f6",
+            weight: 1,
+            fillOpacity: 0.1,
+            interactive: false,
+          }).addTo(map);
+          rangeRing = L.circle(ll, {
+            radius: RANGE,
+            color: "#ff7a9c",
+            weight: 1.5,
+            dashArray: "4 4",
+            fill: false,
+            interactive: false,
+          }).addTo(map);
+        } else {
+          youDot.setLatLng(ll);
+          youAcc.setLatLng(ll).setRadius(gps.acc);
+          rangeRing.setLatLng(ll);
+        }
+        if (first) map.setView(ll, 18);
+        else map.panTo(ll, { animate: true });
+        const here = L.latLng(ll);
+        if (!lastBounds || !lastBounds.pad(-0.25).contains(here))
+          scan(here, 350);
+        else walkRefresh();
+      }
+      function walkRefresh() {
+        if (mode !== "walk" || !gps) return;
+        drawPins();
+        if (sel) {
+          const e = els.get(sel.key);
+          if (
+            e &&
+            pending(e).length &&
+            map.distance(gpsPt(), mid(e)) <= RANGE + 15
+          ) {
+            renderStage();
+            return;
+          }
+          clearSel();
+        }
+        const list = [];
+        for (const e of els.values())
+          for (const q of pending(e)) {
+            const d = map.distance(gpsPt(), mid(e));
+            if (d <= RANGE) list.push({ e, q, d });
+          }
+        list.sort((a, b) => a.d - b.d);
+        if (list.length) {
+          select(ekey(list[0].e), list[0].q.id, false);
+          if (navigator.vibrate) navigator.vibrate(60);
+        } else renderStage();
+      }
+
+      async function submitAnswer(value) {
+        if (busy || !sel) return;
+        const e = els.get(sel.key),
+          q = QM[sel.qid];
+        if (!token) {
+          toast("Log in to OpenStreetMap to save answers", 1);
+          return;
+        }
+        if (mode === "walk" && !inRange(e)) {
+          toast(`Get within ${RANGE} m first`, 1);
+          return;
+        }
+        busy = true;
+        renderStage();
+        try {
+          const cur = await getElem(e.type, e.id);
+          if (cur.tags?.[q.key] !== undefined) {
+            toast("Someone already added that tag, skipping");
+            e.tags = cur.tags;
+            busy = false;
+            advanceFrom(sel.key);
+            return;
+          }
+          const tags = {
+            ...(cur.tags || {}),
+            [q.key]: String(value).trim().slice(0, 255),
+          };
+          const res = await saveElem(e.type, cur, tags, q.key);
+          e.tags = tags;
+          S.csKeys = S.csKeys || {};
+          S.csKeys[q.key] = (S.csKeys[q.key] || 0) + 1;
+          updateCS();
+          const r = award(q);
+          S.log.unshift({
+            t: Date.now(),
+            type: e.type,
+            id: e.id,
+            qid: q.id,
+            key: q.key,
+            value: tags[q.key],
+            ver: res.version,
+            cs: res.cs,
+            gain: r.gain,
+            name: e.tags.name || "",
+          });
+          S.log = S.log.slice(0, 30);
+          save();
+          toast(
+            `+${r.gain} XP${r.mult > 1 ? ` · combo ×${r.mult.toFixed(1)}` : ""}${r.walk ? " · walking bonus" : ""}`,
+          );
+          r.msgs.forEach((m, i) => setTimeout(() => toast(m), 400 * (i + 1)));
+          const k = sel.key;
+          busy = false;
+          drawPins();
+          renderAll();
+          advanceFrom(k);
+        } catch (err) {
+          busy = false;
+          renderStage();
+          toast(
+            err.status === 410
+              ? "That element was deleted"
+              : err.status === 409
+                ? "Edit conflict, the element changed. Rescan and retry."
+                : "Save failed: " + err.message.slice(0, 140),
+            1,
+          );
+        }
+      }
+      function award(q) {
+        ensureDaily();
+        const now = Date.now(),
+          c = S.combo,
+          msgs = [];
+        c.n = now - c.t < 90000 ? c.n + 1 : 1;
+        c.t = now;
+        S.maxCombo = Math.max(S.maxCombo || 0, c.n);
+        const mult = 1 + Math.min(c.n - 1, 10) * 0.1;
+        const walk = mode === "walk";
+        let gain = Math.round(q.xp * mult * (walk ? WALK_BONUS : 1));
+        const d = today();
+        if (S.last !== d) {
+          S.streak = S.last === yesterday() ? S.streak + 1 : 1;
+          S.best = Math.max(S.best, S.streak);
+          S.last = d;
+          if (S.streak > 1) {
+            const b = Math.min(S.streak, 10) * 10;
+            gain += b;
+            msgs.push(`🔥 ${S.streak}-day streak! +${b} XP`);
+          }
+        }
+        const g = S.daily.goals.find((g) => g.cat === q.cat);
+        if (g && !g.done) {
+          g.n++;
+          if (g.n >= g.need) {
+            g.done = true;
+            S.dailiesDone++;
+            gain += 100;
+            msgs.push(`🎯 Daily ${q.cat} goal done! +100 XP`);
+          }
+        }
+        const before = lvlOf(S.xp);
+        S.xp += gain;
+        S.edits++;
+        if (walk) S.walkEdits = (S.walkEdits || 0) + 1;
+        S.byQuest[q.id] = (S.byQuest[q.id] || 0) + 1;
+        S.byCat[q.cat] = (S.byCat[q.cat] || 0) + 1;
+        if (lvlOf(S.xp) > before)
+          msgs.push(`⬆️ Level ${lvlOf(S.xp)}: ${titleOf(lvlOf(S.xp))}!`);
+        for (const a of ACH)
+          if (!S.ach[a.id] && a.test(S)) {
+            S.ach[a.id] = Date.now();
+            msgs.push(`${a.icon} Badge: ${a.name}`);
+          }
+        return { gain, mult, walk, msgs };
+      }
+      async function undoLast() {
+        const l = S.log[0];
+        if (!l || busy) return;
+        busy = true;
+        try {
+          const cur = await getElem(l.type, l.id);
+          if (cur.version !== l.ver)
+            throw new Error(
+              "The element was edited by someone else since, so I will not touch it.",
+            );
+          const tags = { ...cur.tags };
+          delete tags[l.key];
+          await saveElem(l.type, cur, tags, l.key, "Revert");
+          if (S.cs === l.cs && S.csKeys?.[l.key]) {
+            S.csKeys[l.key]--;
+            updateCS();
+          }
+          const q = QM[l.qid];
+          S.xp = Math.max(0, S.xp - l.gain);
+          S.edits = Math.max(0, S.edits - 1);
+          S.byQuest[q.id] = Math.max(0, (S.byQuest[q.id] || 1) - 1);
+          S.byCat[q.cat] = Math.max(0, (S.byCat[q.cat] || 1) - 1);
+          S.log.shift();
+          save();
+          const e = els.get(l.type + "/" + l.id);
+          if (e) e.tags = tags;
+          toast("Edit reverted");
+        } catch (err) {
+          toast("Undo failed: " + err.message.slice(0, 140), 1);
+        }
+        busy = false;
+        drawPins();
+        renderAll();
+        if (!sel) advanceFrom(null);
+      }
+
+      function renderHud() {
+        const L2 = lvlOf(S.xp),
+          a = xpFor(L2),
+          b = xpFor(L2 + 1);
+        $("#lvl").textContent = "Lv " + L2;
+        $("#xpbar").style.width =
+          Math.min(100, ((S.xp - a) / (b - a)) * 100) + "%";
+        $("#xptxt").textContent = `${S.xp} XP · ${titleOf(L2)}`;
+        const c = S.combo,
+          live = Date.now() - c.t < 90000 && c.n > 1;
+        $("#combo").hidden = !live;
+        $("#combo").textContent =
+          `⚡ ×${(1 + Math.min(c.n - 1, 10) * 0.1).toFixed(1)}`;
+        $("#streak").hidden = !(
+          S.streak > 0 &&
+          (S.last === today() || S.last === yesterday())
+        );
+        $("#streak").textContent = "🔥 " + S.streak;
+      }
+      function questCard() {
+        const e = els.get(sel.key),
+          q = QM[sel.qid],
+          c = CATS[q.cat];
+        const nm = e.tags.name ? `<b>${h(e.tags.name)}</b>` : "this place";
+        const ask = h(q.ask).replace("{name}", () => nm);
+        const others = pending(e).filter((x) => x.id !== q.id);
+        const bonus = mode === "walk" ? ` · +25% walking` : "";
+        let ui = "";
+        if (q.ui === "choice")
+          ui = `<div class="opts">${q.opts.map((o, i) => `<button class="opt" data-opt="${i}" ${busy ? "disabled" : ""}>${h(o.l)}</button>`).join("")}</div>`;
+        else
+          ui = `${q.chips ? `<div class="chips">${q.chips.map((x) => `<button data-chip="${h(x)}">${h(x)}</button>`).join("")}</div>` : ""}
+    <div class="row"><input id="ans" type="${q.ui === "num" ? "number" : "text"}" ${q.ui === "num" ? `min="${q.min}" max="${q.max}" step="1" inputmode="numeric"` : ""} placeholder="${h(q.ph || "")}" autocomplete="off"><button class="btn pri" data-submit ${busy ? "disabled" : ""}>Save</button></div><div class="small" id="ansErr" style="color:var(--bad);min-height:18px;margin-top:4px"></div>`;
+        const tagList = Object.entries(e.tags)
+          .map(
+            ([k, v]) =>
+              `<div class="small"><span class="mut">${h(k)}</span> = ${h(v)}</div>`,
+          )
+          .join("");
+        const note =
+          mode === "play"
+            ? `Not at this place? Switch to Walk mode so your answers come from what you can actually see.`
+            : `You are within ${RANGE} m. Look around, then answer.`;
+        return `<div class="card"><div class="row" style="justify-content:space-between"><span class="chip" style="border-color:${c.color}">${c.icon} ${q.cat}</span><span class="pill">+${q.xp} XP${bonus}</span></div>
+  <h3>${q.icon} ${h(q.title)}</h3><div class="q">${ask}</div>
+  ${q.hint ? `<div class="small mut">${h(q.hint)}</div>` : ""}
   ${ui}
-  <div class="row" style="justify-content:space-between"><button class="btn small" data-skip ${busy?'disabled':''}>Skip / not sure</button><a class="small" target="_blank" rel="noopener" href="${OSM}/${e.type}/${e.id}">${e.type}/${e.id} ↗</a></div>
-  ${others.length?`<div class="small mut" style="margin-top:8px">${others.length} more quest${others.length>1?'s':''} on this spot</div>`:''}
+  <div class="row" style="justify-content:space-between"><button class="btn small" data-skip ${busy ? "disabled" : ""}>Skip / not sure</button><a class="small" target="_blank" rel="noopener" href="${OSM}/${e.type}/${e.id}">${e.type}/${e.id} ↗</a></div>
+  ${others.length ? `<div class="small mut" style="margin-top:8px">${others.length} more question${others.length > 1 ? "s" : ""} about this spot</div>` : ""}
   <details style="margin-top:8px"><summary class="small">Existing tags</summary>${tagList}</details>
-  <div class="small mut" style="margin-top:8px">Edits go live on OpenStreetMap right away. Only answer what you saw or know for sure; a skipped quest costs nothing, a wrong answer hurts the map.</div></div>`;
-}
-function renderQuestTab(){
-  const t=$('#tab-quest');
-  let html=`<div class="row" style="justify-content:space-between;margin-bottom:10px"><span class="small mut">${h(scanInfo)}</span><button class="btn small" id="btnNext">Surprise me</button></div>`;
-  if(!token)html+=`<div class="card small">You can browse quests as a guest. <a href="#" id="lnkLogin">Log in to OpenStreetMap</a> to answer them and earn XP.</div>`;
-  if(sel&&els.get(sel.key))html+=questCard();
-  const list=els.size?allPending(sel&&els.get(sel.key)?mid(els.get(sel.key)):map.getCenter()).slice(0,25):[];
-  if(list.length){
-    html+=`<h4>Nearby</h4>`+list.map(x=>`<div class="item" data-sel="${ekey(x.e)}" data-q="${x.q.id}"><span class="ic" style="--c:${CATS[x.q.cat].color}">${x.q.icon}</span><div style="flex:1"><div>${h(x.q.title)}</div><div class="small mut">${h(x.e.tags.name||x.e.type+'/'+x.e.id)}</div></div><span class="small mut">${Math.round(x.d)} m</span></div>`).join('');
-  }
-  t.innerHTML=html;
-  const inp=$('#ans',t);if(inp&&!busy)inp.focus({preventScroll:true});
-}
-function renderProfile(){
-  ensureDaily();const L=lvlOf(S.xp);
-  const goals=S.daily.goals.map(g=>`<div class="goal"><span>${CATS[g.cat].icon} ${g.cat}</span><span class="pill">${g.done?'✅ done':`${g.n}/${g.need}`}</span></div>`).join('');
-  const badges=ACH.map(a=>`<div class="badge ${S.ach[a.id]?'':'lock'}" title="${h(a.d)}"><span>${a.icon}</span>${h(a.name)}</div>`).join('');
-  const cats=Object.entries(CATS).map(([c,v])=>`<div class="goal"><span>${v.icon} ${c}</span><span class="mut">${S.byCat[c]||0}</span></div>`).join('');
-  $('#tab-profile').innerHTML=`<div class="card"><div style="font-size:20px;font-weight:700">${h(user?user.display_name:'Guest')}</div><div class="mut">Level ${L} · ${titleOf(L)}</div></div>
-  <div class="grid"><div class="stat"><b>${S.xp}</b>XP</div><div class="stat"><b>${S.edits}</b>edits</div><div class="stat"><b>${S.streak}</b>streak</div><div class="stat"><b>${S.best}</b>best</div></div>
+  <div class="small mut" style="margin-top:8px">${note} Edits go live on OpenStreetMap immediately, so skip anything you are unsure about.</div></div>
+  <div class="small mut" style="text-align:center">${mode === "walk" ? "Quests appear as you walk" : `${totalPending()} quests nearby`}</div>`;
+      }
+      function renderStage() {
+        const st = $("#stage");
+        $$(".modes button").forEach((b) =>
+          b.classList.toggle("on", b.dataset.mode === mode),
+        );
+        if (!ready()) {
+          st.innerHTML = `<div class="hero"><div class="big">🌹</div><h2>Roseberry</h2>
+    <p class="mut">Answer quick questions about the places around you and help make OpenStreetMap better! Earn XP, keep streaks, collect badges.</p>
+    <button class="btn pri cta" data-act="login">Log in with OpenStreetMap</button>
+    <button class="link" data-act="guest">Just look around</button></div>`;
+          return;
+        }
+        if (sel && els.get(sel.key)) {
+          st.innerHTML = questCard();
+          const inp = $("#ans", st);
+          if (inp && !busy) inp.focus({ preventScroll: true });
+          return;
+        }
+        const guestNote = !token
+          ? `<div class="card small">You are browsing as a guest. <a href="#" data-act="login">Log in</a> to answer quests and earn XP.</div>`
+          : "";
+        if (mode === "walk") {
+          if (!gps) {
+            st.innerHTML =
+              guestNote +
+              `<div class="hero"><div class="big">📡</div><h2>Finding you…</h2><p class="mut">Allow location access. Quests appear when you are within ${RANGE} m of them, and you get +25% XP for answering on the spot.</p></div>`;
+            return;
+          }
+          if (scanning && !everScanned) {
+            st.innerHTML =
+              guestNote +
+              `<div class="hero"><div class="big">🔍</div><h2>Looking around…</h2></div>`;
+            return;
+          }
+          let near = null;
+          for (const e of els.values())
+            for (const q of pending(e)) {
+              const d = map.distance(gpsPt(), mid(e));
+              if (!near || d < near.d) near = { e, q, d };
+            }
+          const acc =
+            gps.acc > 60
+              ? `<div class="small" style="color:var(--bad);margin-top:8px">GPS accuracy is about ±${Math.round(gps.acc)} m, so quests may be off.</div>`
+              : "";
+          st.innerHTML =
+            guestNote +
+            `<div class="hero"><div class="big">🚶</div><h2>Keep walking</h2>` +
+            (near
+              ? `<p class="mut">Nothing within ${RANGE} m yet.</p><div class="card"><div>${near.q.icon} ${h(near.q.title)}</div><div class="mut small">${Math.round(near.d)} m · ${bearingText(gpsPt(), mid(near.e))}</div></div>`
+              : `<p class="mut">No quests around you. I rescan automatically as you move.</p>`) +
+            acc +
+            `</div>`;
+          return;
+        }
+        if (scanning) {
+          st.innerHTML =
+            guestNote +
+            `<div class="hero"><div class="big">🔍</div><h2>Looking for quests…</h2></div>`;
+          return;
+        }
+        const msg = everScanned
+          ? `<div class="big">🌹</div><h2>All clear here</h2><p class="mut">Drag the map somewhere new and it scans automatically, or pick below.</p>`
+          : `<div class="big">▶</div><h2>Ready?</h2><p class="mut">Find questions about places near you. One at a time, tap to answer.</p>`;
+        st.innerHTML =
+          guestNote +
+          `<div class="hero">${msg}<button class="btn pri cta" data-act="near">📍 Quests near me</button><button class="btn cta" data-act="here">Scan the map area</button></div>`;
+      }
+      function renderProfile() {
+        ensureDaily();
+        const L2 = lvlOf(S.xp);
+        const goals = S.daily.goals
+          .map(
+            (g) =>
+              `<div class="goal"><span>${CATS[g.cat].icon} ${g.cat}</span><span class="pill">${g.done ? "✅ done" : `${g.n}/${g.need}`}</span></div>`,
+          )
+          .join("");
+        const badges = ACH.map(
+          (a) =>
+            `<div class="badge ${S.ach[a.id] ? "" : "lock"}" title="${h(a.d)}"><span>${a.icon}</span>${h(a.name)}</div>`,
+        ).join("");
+        const cats = Object.entries(CATS)
+          .map(
+            ([c, v]) =>
+              `<div class="goal"><span>${v.icon} ${c}</span><span class="mut">${S.byCat[c] || 0}</span></div>`,
+          )
+          .join("");
+        $("#tab-profile").innerHTML =
+          `<div class="card"><div style="font-size:20px;font-weight:700">${h(user ? user.display_name : "Guest")}</div><div class="mut">Level ${L2} · ${titleOf(L2)}</div></div>
+  <div class="grid"><div class="stat"><b>${S.xp}</b>XP</div><div class="stat"><b>${S.edits}</b>edits</div><div class="stat"><b>${S.walkEdits || 0}</b>walked</div><div class="stat"><b>${S.streak}</b>streak</div></div>
   <h4>Daily goals (+100 XP each)</h4>${goals}<h4>Badges</h4><div class="grid" style="grid-template-columns:repeat(3,1fr)">${badges}</div><h4>Edits by category</h4>${cats}`;
-}
-function renderCatalog(){
-  const counts={};for(const e of els.values())for(const q of pending(e))counts[q.id]=(counts[q.id]||0)+1;
-  let html=`<div class="small mut" style="margin-bottom:8px">${Q.length} quest types. Turn off the ones you do not want to see (rescan to apply).</div>`;
-  for(const [c,v] of Object.entries(CATS)){
-    html+=`<h4>${v.icon} ${c}</h4>`+Q.filter(q=>q.cat===c).map(q=>`<label class="sw"><input type="checkbox" data-toggle="${q.id}" ${S.off[q.id]?'':'checked'}><span style="flex:1">${q.icon} ${h(q.title)}</span><span class="small mut">${counts[q.id]||0} here · ${q.xp} XP</span></label>`).join('');
-  }
-  $('#tab-catalog').innerHTML=html;
-}
-function renderLog(){
-  const rows=S.log.map((l,i)=>{const q=QM[l.qid];return`<div class="item" style="cursor:default"><span class="ic" style="--c:${CATS[q.cat].color}">${q.icon}</span><div style="flex:1"><div>${h(q.title)}: ${h(l.value)}</div><div class="small mut"><a target="_blank" rel="noopener" href="${OSM}/${l.type}/${l.id}">${l.type}/${l.id}</a> · ${new Date(l.t).toLocaleTimeString()}</div></div><span class="pill">+${l.gain}</span>${i===0?`<button class="btn small" data-undo>Undo</button>`:''}</div>`}).join('');
-  $('#tab-log').innerHTML=`<div class="card small">${S.cs?`Open changeset <a target="_blank" rel="noopener" href="${OSM}/changeset/${S.cs}">#${S.cs}</a>. OSM closes it on its own after an hour of inactivity.<div style="margin-top:8px"><button class="btn small" data-closecs>Close changeset now</button></div>`:'No open changeset. One is created with your next answer.'}</div>${rows||'<div class="mut">Nothing yet.</div>'}`;
-}
-function renderAll(){renderHud();renderQuestTab();renderProfile();renderCatalog();renderLog()}
+      }
+      function renderCatalog() {
+        const counts = {};
+        for (const e of els.values())
+          for (const q of pending(e)) counts[q.id] = (counts[q.id] || 0) + 1;
+        let html = `<div class="small mut" style="margin-bottom:8px">${Q.length} quest types. Turn off the ones you do not want.</div>`;
+        for (const [c, v] of Object.entries(CATS)) {
+          html +=
+            `<h4>${v.icon} ${c}</h4>` +
+            Q.filter((q) => q.cat === c)
+              .map(
+                (q) =>
+                  `<label class="sw"><input type="checkbox" data-toggle="${q.id}" ${S.off[q.id] ? "" : "checked"}><span style="flex:1">${q.icon} ${h(q.title)}</span><span class="small mut">${counts[q.id] || 0} here · ${q.xp} XP</span></label>`,
+              )
+              .join("");
+        }
+        $("#tab-catalog").innerHTML = html;
+      }
+      function renderLog() {
+        const rows = S.log
+          .map((l, i) => {
+            const q = QM[l.qid];
+            return `<div class="item"><span class="ic" style="--c:${CATS[q.cat].color}">${q.icon}</span><div style="flex:1"><div>${h(q.title)}: ${h(l.value)}</div><div class="small mut"><a target="_blank" rel="noopener" href="${OSM}/${l.type}/${l.id}">${l.type}/${l.id}</a> · ${new Date(l.t).toLocaleTimeString()}</div></div><span class="pill">+${l.gain}</span>${i === 0 ? `<button class="btn small" data-undo>Undo</button>` : ""}</div>`;
+          })
+          .join("");
+        $("#tab-log").innerHTML =
+          `<div class="card small">${S.cs ? `Open changeset <a target="_blank" rel="noopener" href="${OSM}/changeset/${S.cs}">#${S.cs}</a>. OSM closes it on its own after an hour of inactivity.<div style="margin-top:8px"><button class="btn small" data-closecs>Close changeset now</button></div>` : "No open changeset. One is created with your next answer."}</div>${rows || '<div class="mut">Nothing yet.</div>'}`;
+      }
+      function renderAccount() {
+        $("#tab-account").innerHTML =
+          `<div class="card"><div style="font-size:18px;font-weight:700">${user ? h(user.display_name) : token ? "Logged in" : "Not logged in"}</div></div>
+  <div class="row" style="flex-wrap:wrap"><button class="btn pri" data-act="${token ? "logout" : "login"}">${token ? "Log out" : "Log in with OpenStreetMap"}</button>${CLIENT_ID ? "" : '<button class="btn" id="btnCfg">Connection settings</button>'}<button class="btn" id="btnReset">Reset local progress</button></div>
+  <div class="small mut" style="margin-top:12px">Saved answers go straight to OpenStreetMap under your account. Progress and your login token stay in this browser only.</div>`;
+      }
+      function renderAll() {
+        renderHud();
+        renderStage();
+        renderProfile();
+        renderCatalog();
+        renderLog();
+        renderAccount();
+      }
 
-/* ---------- setup modal ---------- */
-function openSetup(){
-  if(CLIENT_ID){
-    $('#setupBox').innerHTML=`<h3 style="margin-top:0">🌹 Settings</h3><div class="small mut">Your token and progress are stored only in this browser.</div>
+      function switchTab(t) {
+        $$(".mtabs button").forEach((b) =>
+          b.classList.toggle("on", b.dataset.tab === t),
+        );
+        $$("#menu .tab").forEach((s) =>
+          s.classList.toggle("on", s.id === "tab-" + t),
+        );
+      }
+      function openSetup() {
+        if (CLIENT_ID) {
+          $("#setupBox").innerHTML =
+            `<h3 style="margin-top:0">🌹 Settings</h3><div class="small mut">Your token and progress are stored only in this browser.</div>
     <div class="row" style="margin-top:12px"><button class="btn" id="cidClose">Close</button><button class="btn" id="resetProg" style="margin-left:auto">Reset local progress</button></div>`;
-    $('#setup').classList.add('on');return;
-  }
-  $('#setupBox').innerHTML=`<h3 style="margin-top:0">🌹 Connect Roseberry to OpenStreetMap</h3>
+          $("#setup").classList.add("on");
+          return;
+        }
+        $("#setupBox").innerHTML =
+          `<h3 style="margin-top:0">🌹 Connect Roseberry to OpenStreetMap</h3>
   <ol class="small" style="padding-left:18px">
   <li>Open <a target="_blank" rel="noopener" href="${OSM}/oauth2/applications/new">${OSM}/oauth2/applications/new</a> (while logged in).</li>
   <li>Name: <code>Roseberry</code></li>
@@ -560,63 +2384,155 @@ function openSetup(){
   <input type="text" id="cid" placeholder="Client ID" value="${h(clientId())}">
   <div class="row" style="margin-top:12px;flex-wrap:wrap"><button class="btn pri" id="cidSave">Save</button><button class="btn" id="cidClose">Close</button>
   <button class="btn" id="resetProg" style="margin-left:auto">Reset local progress</button></div>
-  <div class="small mut" style="margin-top:10px">Serve this file over http (for example <code>python -m http.server 8080</code>); OAuth does not work from file://. The redirect URI must match the one you registered exactly. Your token and progress stay in this browser.</div>`;
-  $('#setup').classList.add('on');
-}
+  <div class="small mut" style="margin-top:10px">Serve this file over http or https; OAuth does not work from file://. The redirect URI must match the one you registered exactly. Your token and progress stay in this browser.</div>`;
+        $("#setup").classList.add("on");
+      }
 
-/* ---------- events ---------- */
-document.addEventListener('click',ev=>{
-  const t=ev.target;
-  if(t.closest('.tabs button')){switchTab(t.closest('.tabs button').dataset.tab);return}
-  if(t.id==='btnScan')scan();
-  else if(t.id==='btnLogin')user||token?logout():login();
-  else if(t.id==='btnCfg')openSetup();
-  else if(t.id==='btnLocate')map.locate({setView:true,maxZoom:17});
-  else if(t.id==='btnNext')nextQuest(null);
-  else if(t.id==='lnkLogin'){ev.preventDefault();login()}
-  else if(t.id==='cidSave'){localStorage.setItem('roseberry:client',$('#cid').value.trim());$('#setup').classList.remove('on');toast('Saved. Press Log in.')}
-  else if(t.id==='cidClose')$('#setup').classList.remove('on');
-  else if(t.id==='resetProg'){if(confirm('Delete all local XP, badges and skips for this account?')){S=defState();ensureDaily();save();renderAll();$('#setup').classList.remove('on')}}
-  else if(t.closest('[data-opt]')){const o=QM[sel.qid].opts[+t.closest('[data-opt]').dataset.opt];submitAnswer(o.v)}
-  else if(t.closest('[data-chip]')){const i=$('#ans');i.value=t.closest('[data-chip]').dataset.chip;i.focus()}
-  else if(t.closest('[data-submit]'))submitFromInput();
-  else if(t.closest('[data-skip]')){const k=sel.key;(S.skip[k]=S.skip[k]||[]).push(sel.qid);save();nextQuest(k);drawPins();renderQuestTab()}
-  else if(t.closest('[data-sel]')){const d=t.closest('[data-sel]').dataset;select(d.sel,d.q,true)}
-  else if(t.closest('[data-undo]'))undoLast();
-  else if(t.closest('[data-closecs]'))closeCS();
-});
-document.addEventListener('change',ev=>{
-  const id=ev.target.dataset?.toggle;
-  if(id){if(ev.target.checked)delete S.off[id];else S.off[id]=1;save();drawPins();renderQuestTab()}
-});
-document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='ans')submitFromInput()});
-function submitFromInput(){
-  const q=QM[sel.qid],v=$('#ans').value.trim(),err=$('#ansErr');
-  if(q.ui==='num'){
-    const n=Number(v);
-    if(!/^\d+$/.test(v)||n<q.min||n>q.max){err.textContent=`Enter a whole number from ${q.min} to ${q.max}`;return}
-  }else if(!q.val.test(v)){err.textContent=q.err||'Invalid value';return}
-  submitAnswer(v);
-}
-let tmr;
-map.on('moveend',()=>{
-  localStorage.setItem('roseberry:view',JSON.stringify([map.getCenter().lat,map.getCenter().lng]));localStorage.setItem('roseberry:zoom',map.getZoom());
-  clearTimeout(tmr);
-  if($('#auto').checked&&map.getZoom()>=15)tmr=setTimeout(()=>{if(!lastBounds||!lastBounds.contains(map.getBounds()))scan()},900);
-});
-map.on('locationerror',()=>toast('Could not get your location',1));
-setInterval(renderHud,15000);
+      function resetProgress() {
+        if (
+          confirm("Delete all local XP, badges and skips for this account?")
+        ) {
+          S = defState();
+          ensureDaily();
+          save();
+          renderAll();
+          drawPins();
+          $("#setup").classList.remove("on");
+        }
+      }
+      document.addEventListener("click", (ev) => {
+        const t = ev.target;
+        const actEl = t.closest("[data-act]");
+        if (actEl) {
+          const act = actEl.dataset.act;
+          if (act === "login") {
+            ev.preventDefault();
+            login();
+          } else if (act === "logout") {
+            logout();
+            $("#menu").classList.remove("on");
+          } else if (act === "guest") {
+            guest = true;
+            sessionStorage.setItem("roseberry:guest", "1");
+            renderAll();
+          } else if (act === "near") {
+            map.locate({ setView: false, enableHighAccuracy: true });
+            toast("Finding you…");
+          } else if (act === "here") {
+            if (map.getZoom() < 15) map.setZoom(16, { animate: false });
+            scan();
+          }
+          return;
+        }
+        const modeBtn = t.closest(".modes button");
+        if (modeBtn) {
+          setMode(modeBtn.dataset.mode);
+          return;
+        }
+        const tabBtn = t.closest(".mtabs button");
+        if (tabBtn) {
+          switchTab(tabBtn.dataset.tab);
+          return;
+        }
+        if (t.id === "btnMenu") {
+          renderAll();
+          $("#menu").classList.add("on");
+        } else if (t.id === "menuClose" || t.id === "menu")
+          $("#menu").classList.remove("on");
+        else if (t.id === "btnCfg") {
+          $("#menu").classList.remove("on");
+          openSetup();
+        } else if (t.id === "btnReset" || t.id === "resetProg") resetProgress();
+        else if (t.id === "cidSave") {
+          localStorage.setItem("roseberry:client", $("#cid").value.trim());
+          $("#setup").classList.remove("on");
+          toast("Saved. Now log in.");
+        } else if (t.id === "cidClose") $("#setup").classList.remove("on");
+        else if (t.closest("[data-opt]")) {
+          const o = QM[sel.qid].opts[+t.closest("[data-opt]").dataset.opt];
+          submitAnswer(o.v);
+        } else if (t.closest("[data-chip]")) {
+          const i = $("#ans");
+          i.value = t.closest("[data-chip]").dataset.chip;
+          i.focus();
+        } else if (t.closest("[data-submit]")) submitFromInput();
+        else if (t.closest("[data-skip]")) {
+          const k = sel.key;
+          (S.skip[k] = S.skip[k] || []).push(sel.qid);
+          save();
+          drawPins();
+          advanceFrom(k);
+        } else if (t.closest("[data-undo]")) undoLast();
+        else if (t.closest("[data-closecs]")) closeCS();
+      });
+      let tglTimer;
+      document.addEventListener("change", (ev) => {
+        const id = ev.target.dataset?.toggle;
+        if (!id) return;
+        if (ev.target.checked) delete S.off[id];
+        else S.off[id] = 1;
+        save();
+        if (sel && S.off[sel.qid]) clearSel();
+        drawPins();
+        clearTimeout(tglTimer);
+        tglTimer = setTimeout(() => {
+          if (mode === "walk" && gps) scan(L.latLng(gps.lat, gps.lng), 350);
+          else if (ready() && map.getZoom() >= 15) scan();
+        }, 700);
+      });
+      document.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && ev.target.id === "ans") submitFromInput();
+      });
+      function submitFromInput() {
+        const q = QM[sel.qid],
+          v = $("#ans").value.trim(),
+          err = $("#ansErr");
+        if (q.ui === "num") {
+          const n = Number(v);
+          if (!/^\d+$/.test(v) || n < q.min || n > q.max) {
+            err.textContent = `Enter a whole number from ${q.min} to ${q.max}`;
+            return;
+          }
+        } else if (!q.val.test(v)) {
+          err.textContent = q.err || "Invalid value";
+          return;
+        }
+        submitAnswer(v);
+      }
 
-/* ---------- boot ---------- */
-(async()=>{
-  loadState(null);
-  await handleRedirect();
-  await fetchUser();
-  renderAll();
-  if(!localStorage.getItem('roseberry:view')&&navigator.geolocation)map.locate({setView:true,maxZoom:17});
-  if(!clientId()&&!token)openSetup();
-  if(map.getZoom()>=15)scan();
-})();
-</script>
-</body>
+      let moveTimer;
+      map.on("moveend", () => {
+        localStorage.setItem(
+          "roseberry:view",
+          JSON.stringify([map.getCenter().lat, map.getCenter().lng]),
+        );
+        localStorage.setItem("roseberry:zoom", map.getZoom());
+        clearTimeout(moveTimer);
+        if (mode === "play" && ready() && map.getZoom() >= 15)
+          moveTimer = setTimeout(() => {
+            if (!lastBounds || !lastBounds.contains(map.getCenter())) scan();
+          }, 900);
+      });
+      map.on("locationfound", (e) => {
+        if (mode !== "play") return;
+        map.setView(e.latlng, 17);
+        scan(e.latlng, 400);
+      });
+      map.on("locationerror", () => toast("Could not get your location", 1));
+      setInterval(renderHud, 15000);
+
+      (async () => {
+        loadState(null);
+        await handleRedirect();
+        await fetchUser();
+        renderAll();
+        if (
+          ready() &&
+          localStorage.getItem("roseberry:view") &&
+          map.getZoom() >= 15
+        )
+          scan();
+      })();
+    </script>
+  </body>
 </html>
